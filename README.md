@@ -142,3 +142,4 @@
 - RLS бүх хүснэгт дээр идэвхтэй; эзэмшил/ролийн шалгалт нэмэлтээр сервер дээр.
 - Password: дор хаяж 8 тэмдэгт, үсэг + тоо; зөвхөн Supabase Auth хадгална.
 - Хэрэглэгчийн текст React default escaping-ээр гарна; `dangerouslySetInnerHTML` ашиглана.
+# Baina
