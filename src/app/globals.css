@@ -1,0 +1,401 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Page transition used by app/template.tsx: fade + slide-up 16px, 0.25s. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Design tokens (light theme)
+   RGB channel triplets without rgb() so Tailwind can add <alpha-value>.
+   Components must reference these via Tailwind classes, never raw hex.
+--------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  /* primary: warm orange / amber (brand CTA) */
+  --color-primary-50: 255 247 230;   /* #FFF7E6 soft tint */
+  --color-primary-100: 254 236 209;
+  --color-primary-200: 253 217 164;
+  --color-primary-300: 252 200 110;
+  --color-primary-400: 251 180 52;
+  --color-primary-500: 245 158 11;   /* #F59E0B */
+  --color-primary-600: 217 119 6;    /* #D97706 hover */
+  --color-primary-700: 180 83 9;
+  --color-primary-800: 146 64 14;
+  --color-primary-900: 120 53 15;
+  --color-primary-950: 69 26 3;
+
+  /* accent: green (individual "Хувь хүн" accent + success chips) */
+  --color-accent-50: 230 248 239;    /* #E6F8EF */
+  --color-accent-100: 209 244 226;
+  --color-accent-200: 167 232 199;
+  --color-accent-300: 110 217 168;
+  --color-accent-400: 52 197 134;
+  --color-accent-500: 16 185 129;
+  --color-accent-600: 5 150 105;
+  --color-accent-700: 4 120 87;      /* #047857 */
+  --color-accent-800: 6 95 70;
+  --color-accent-900: 6 78 59;
+  --color-accent-950: 2 44 34;
+
+  /* info: blue chips/links + company accent */
+  --color-info-50: 234 241 255;      /* #EAF1FF */
+  --color-info-100: 213 225 255;
+  --color-info-200: 184 204 255;
+  --color-info-300: 147 177 254;
+  --color-info-400: 96 138 253;
+  --color-info-500: 37 99 235;
+  --color-info-600: 29 78 216;       /* #1D4ED8 */
+  --color-info-700: 24 63 180;
+  --color-info-800: 27 55 145;
+  --color-info-900: 26 49 115;
+  --color-info-950: 20 34 70;
+
+  /* danger: red — errors only */
+  --color-danger-50: 254 242 242;
+  --color-danger-100: 254 226 226;
+  --color-danger-200: 254 202 202;
+  --color-danger-300: 252 165 165;
+  --color-danger-400: 248 113 113;
+  --color-danger-500: 239 68 68;
+  --color-danger-600: 220 38 38;
+  --color-danger-700: 185 28 28;
+  --color-danger-800: 153 27 27;
+  --color-danger-900: 127 29 29;
+  --color-danger-950: 69 10 10;
+
+  /* warning: amber (deadlines, pending) */
+  --color-warning-50: 255 251 235;
+  --color-warning-100: 254 243 199;
+  --color-warning-200: 253 230 138;
+  --color-warning-300: 252 211 77;
+  --color-warning-400: 251 191 36;
+  --color-warning-500: 245 158 11;
+  --color-warning-600: 217 119 6;
+  --color-warning-700: 180 83 9;
+  --color-warning-800: 146 64 14;
+  --color-warning-900: 120 53 15;
+  --color-warning-950: 69 26 3;
+
+  /* semantic tokens */
+  --color-bg: 248 248 247;           /* #F8F8F7 page background */
+  --color-surface: 255 255 255;      /* cards */
+  --color-surface-2: 244 244 243;    /* subtle fills */
+  --color-border: 229 231 235;       /* #E5E7EB */
+  --color-text: 15 23 42;            /* #0F172A navy ink (headings) */
+  --color-muted: 100 116 139;        /* #64748B secondary text */
+  --color-ring: 217 119 6;           /* focus ring */
+  --color-navy: 15 23 42;            /* header bar / dark surfaces */
+  --color-navy-soft: 30 41 59;       /* dark panels (dropdowns) */
+  --color-warm: 255 251 240;         /* #FFFBF0 faint warm card gradient */
+
+  /* brand verticals: the constant "байна" core + ONE accent token per vertical.
+     Adding a vertical = add one token here (+ one entry in src/lib/brand.ts). */
+  --brand-tender: 245 158 11;        /* #F59E0B — Тендер байна */
+  --brand-classified: 20 184 166;    /* #14B8A6 — Зар байна */
+  --brand-jobs: 139 92 246;          /* #8B5CF6 — Ажил байна */
+
+  /* gradients */
+  --gradient-primary: linear-gradient(
+    135deg,
+    rgb(var(--color-primary-500)) 0%,
+    rgb(var(--color-primary-600)) 100%
+  );
+  /* Section mesh: the "байна" family gradient — amber (Тендер), teal (Зар) and
+     violet (Ажил) pools, so the landing surfaces are never orange-only.
+     Overridden in .dark with a stronger mix that still reads on the slate bg. */
+  --gradient-mesh: radial-gradient(
+      58% 58% at 8% 4%,
+      rgb(var(--brand-tender) / 0.45),
+      rgb(var(--brand-tender) / 0) 64%
+    ),
+    radial-gradient(
+      54% 54% at 94% 2%,
+      rgb(var(--brand-classified) / 0.36),
+      rgb(var(--brand-classified) / 0) 62%
+    ),
+    radial-gradient(
+      60% 56% at 68% 100%,
+      rgb(var(--brand-jobs) / 0.3),
+      rgb(var(--brand-jobs) / 0) 66%
+    );
+  /* Hero: ONE centered aurora behind the headline so the eye lands on the
+     search bar, with two quieter family pools (teal left, violet right) at the
+     shoulders. The old mesh only tinted the corners, which left the middle —
+     where all the content is — looking empty and washed out.
+     The vertical anchors are pushed down (~18% instead of ~6%) because the hero
+     now begins at the page top and runs under the header: at the old anchors the
+     aurora's core would have been hidden behind the header pill. */
+  --gradient-hero: radial-gradient(
+      46% 52% at 50% 18%,
+      rgb(var(--brand-tender) / 0.42),
+      rgb(var(--brand-tender) / 0) 72%
+    ),
+    radial-gradient(
+      36% 44% at 6% 32%,
+      rgb(var(--brand-classified) / 0.3),
+      rgb(var(--brand-classified) / 0) 70%
+    ),
+    radial-gradient(
+      36% 44% at 94% 28%,
+      rgb(var(--brand-jobs) / 0.28),
+      rgb(var(--brand-jobs) / 0) 70%
+    );
+  /* hairline grid, revealed only under the aurora */
+  --hero-grid-line: rgb(var(--color-border) / 0.55);
+  /* frosted glass surface (category tiles, floating controls) */
+  --gradient-glass: linear-gradient(
+    150deg,
+    rgb(255 255 255 / 0.86) 0%,
+    rgb(255 255 255 / 0.52) 100%
+  );
+  --gradient-accent: linear-gradient(
+    135deg,
+    rgb(var(--color-accent-500)) 0%,
+    rgb(var(--color-accent-600)) 100%
+  );
+  --gradient-blob: radial-gradient(
+    circle at center,
+    rgb(var(--color-primary-400) / 0.35),
+    rgb(var(--color-primary-400) / 0) 70%
+  );
+  --gradient-warm-card: linear-gradient(160deg, #ffffff 0%, rgb(var(--color-warm)) 100%);
+}
+
+/* ---------------------------------------------------------------------------
+   Design tokens (dark theme) — deep slate/navy surfaces, SAME orange primary
+--------------------------------------------------------------------------- */
+.dark {
+  color-scheme: dark;
+
+  /* slightly brightened amber ramp so CTAs stay legible on dark */
+  --color-primary-50: 69 26 3;
+  --color-primary-100: 90 35 5;
+  --color-primary-200: 120 53 15;
+  --color-primary-300: 146 64 14;
+  --color-primary-400: 180 83 9;
+  --color-primary-500: 245 158 11;
+  --color-primary-600: 251 191 36;
+  --color-primary-700: 252 211 77;
+  --color-primary-800: 253 230 138;
+  --color-primary-900: 254 243 199;
+  --color-primary-950: 255 251 235;
+
+  --color-bg: 11 18 32;              /* #0B1220 */
+  --color-surface: 17 26 46;         /* #111A2E */
+  --color-surface-2: 24 34 58;
+  --color-border: 36 48 74;
+  --color-text: 241 245 249;
+  --color-muted: 148 163 184;
+  --color-ring: 251 191 36;
+  --color-navy: 11 18 32;
+  --color-navy-soft: 24 34 58;
+
+  /* brand verticals stay the same hue on dark (they read on navy surfaces) */
+  --brand-tender: 245 158 11;
+  --brand-classified: 20 184 166;
+  --brand-jobs: 139 92 246;
+
+  --gradient-blob: radial-gradient(
+    circle at center,
+    rgb(var(--color-primary-500) / 0.22),
+    rgb(var(--color-primary-500) / 0) 70%
+  );
+  --gradient-warm-card: linear-gradient(
+    160deg,
+    rgb(var(--color-surface)) 0%,
+    rgb(var(--color-navy-soft)) 100%
+  );
+
+  /* same family mix as light, tuned for the dark slate background */
+  --gradient-mesh: radial-gradient(
+      58% 58% at 8% 4%,
+      rgb(var(--brand-tender) / 0.3),
+      rgb(var(--brand-tender) / 0) 64%
+    ),
+    radial-gradient(
+      54% 54% at 94% 2%,
+      rgb(var(--brand-classified) / 0.26),
+      rgb(var(--brand-classified) / 0) 62%
+    ),
+    radial-gradient(
+      60% 56% at 68% 100%,
+      rgb(var(--brand-jobs) / 0.3),
+      rgb(var(--brand-jobs) / 0) 66%
+    );
+  --gradient-glass: linear-gradient(
+    150deg,
+    rgb(255 255 255 / 0.09) 0%,
+    rgb(255 255 255 / 0.02) 100%
+  );
+
+  /* Hero aurora on the slate background: same three pools, lifted so they stay
+     visible against #0B1220, plus a brighter hairline grid. Anchors match the
+     light theme (see above) so the core sits behind the headline, not behind
+     the header. */
+  --gradient-hero: radial-gradient(
+      48% 54% at 50% 16%,
+      rgb(var(--brand-tender) / 0.34),
+      rgb(var(--brand-tender) / 0) 72%
+    ),
+    radial-gradient(
+      38% 46% at 6% 30%,
+      rgb(var(--brand-classified) / 0.26),
+      rgb(var(--brand-classified) / 0) 70%
+    ),
+    radial-gradient(
+      38% 46% at 94% 26%,
+      rgb(var(--brand-jobs) / 0.3),
+      rgb(var(--brand-jobs) / 0) 70%
+    );
+  --hero-grid-line: rgb(148 163 184 / 0.16);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem; /* anchor offset under sticky header */
+  }
+
+  body {
+    @apply bg-bg font-sans text-text antialiased;
+  }
+
+  /* visible focus ring on every interactive element */
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-ring));
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  ::selection {
+    background-color: rgb(var(--color-primary-200));
+    color: rgb(var(--color-primary-950));
+  }
+
+  .dark ::selection {
+    background-color: rgb(var(--color-primary-300));
+    color: rgb(var(--color-primary-950));
+  }
+}
+
+@layer components {
+  /* shared card surface */
+  .card {
+    @apply rounded-2xl border border-border bg-surface shadow-card;
+  }
+
+  /* card surface with the warm gradient (light: white -> warm tint,
+     dark: surface -> navy-soft); used by tender cards so lists read as
+     "raised" panels instead of flat boxes. */
+  .card-gradient {
+    @apply rounded-2xl border border-border shadow-card;
+    background-image: var(--gradient-warm-card);
+  }
+
+  /* glassmorphism base used by header */
+  .glass {
+    @apply border-b border-white/20 bg-white/60 backdrop-blur-xl dark:bg-slate-900/60;
+  }
+
+  /* frosted glass panel: translucent surface + blur + light hairline border,
+     so a mesh/photo behind it stays visible. */
+  .glass-panel {
+    @apply rounded-2xl border border-white/70 shadow-card backdrop-blur-xl dark:border-white/10;
+    background-image: var(--gradient-glass);
+  }
+}
+
+@layer utilities {
+  /* page transition: fade + slide-up 16px, 0.25s (see app/template.tsx).
+     Runs without JavaScript so content is never left invisible. */
+  .page-enter {
+    animation: page-enter 0.25s ease-out both;
+  }
+
+  /* Staggered entrances (CSS-only, so content is visible even without JS). */
+  .enter-1 {
+    animation: page-enter 0.35s ease-out 0s both;
+  }
+  .enter-2 {
+    animation: page-enter 0.35s ease-out 0.08s both;
+  }
+  .enter-3 {
+    animation: page-enter 0.35s ease-out 0.16s both;
+  }
+  .enter-4 {
+    animation: page-enter 0.35s ease-out 0.24s both;
+  }
+  .enter-5 {
+    animation: page-enter 0.35s ease-out 0.32s both;
+  }
+
+  /* Hero backdrop: the aurora above + a hairline grid that fades out with it. */
+  .bg-hero {
+    background-image: var(--gradient-hero);
+  }
+
+  .hero-grid {
+    background-image: linear-gradient(
+        to right,
+        var(--hero-grid-line) 1px,
+        transparent 1px
+      ),
+      linear-gradient(to bottom, var(--hero-grid-line) 1px, transparent 1px);
+    background-size: 60px 60px;
+    -webkit-mask-image: radial-gradient(
+      72% 68% at 50% 0%,
+      #000 0%,
+      rgb(0 0 0 / 0.35) 52%,
+      transparent 82%
+    );
+    mask-image: radial-gradient(
+      72% 68% at 50% 0%,
+      #000 0%,
+      rgb(0 0 0 / 0.35) 52%,
+      transparent 82%
+    );
+  }
+
+  /* shimmer skeleton background */
+  .bg-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--color-surface-2)) 0px,
+      rgb(var(--color-border)) 40px,
+      rgb(var(--color-surface-2)) 80px
+    );
+    background-size: 400px 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  .text-gradient-primary {
+    background-image: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Accessibility: respect reduced motion preference globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
