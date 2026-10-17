@@ -1,0 +1,35 @@
+CLEANUP: database unreachable -> Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+
+Run this manually in the Supabase SQL Editor:
+
+-- Supabase SQL Editor: run this manually
+update public.profiles set is_admin = false where email like 'verify-%';
+delete from auth.users where email like 'verify-admin-%' or email like 'verify-normal-%';
+=== admin:verify ===
+
+> tender-mn@0.1.0 admin:verify
+> node scripts/verify-admin.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/verify-admin.mjs:66:14
+
+Node.js v20.18.0
+VERIFY_EXIT=1
+CLEANUP: database unreachable -> Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+
+Run this manually in the Supabase SQL Editor:
+
+-- Supabase SQL Editor: run this manually
+update public.profiles set is_admin = false where email like 'verify-%';
+delete from auth.users where email like 'verify-admin-%' or email like 'verify-normal-%';
+FINAL_CLEANUP_EXIT=1
+QUEUE_DONE

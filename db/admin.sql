@@ -44,6 +44,16 @@ comment on column public.profiles.status is 'active | suspended; suspended users
 -- 2. public.is_admin() — the single source of truth used by RLS policies,
 --    RPCs and triggers. SECURITY DEFINER so RLS on profiles cannot hide the
 --    flag from the check itself.
+--
+--    TWO conditions, both required:
+--      a) the account carries the flag (profiles.is_admin), AND
+--      b) the CURRENT session is at aal2 (password + verified MFA factor).
+--
+--    (b) is what makes MFA mandatory for the panel: a stolen password alone
+--    yields an aal1 token, and an aal1 admin can neither read admin-only rows
+--    nor call any admin RPC. The claim is read from the request JWT, which
+--    PostgREST exposes as the `request.jwt.claims` setting ('' when there is
+--    no JWT at all, e.g. a direct SQL session).
 -- ---------------------------------------------------------------------------
 create or replace function public.is_admin()
 returns boolean
@@ -52,7 +62,26 @@ stable
 security definer
 set search_path = public
 as $$
+declare
+  v_claims text := coalesce(current_setting('request.jwt.claims', true), '');
+  v_aal text;
 begin
+  -- No JWT (direct SQL session / anon): never an admin.
+  if v_claims = '' then
+    return false;
+  end if;
+
+  begin
+    v_aal := (v_claims::jsonb) ->> 'aal';
+  exception when others then
+    v_aal := null;
+  end;
+
+  -- aal1 (password only), missing claim or any other value: not an admin.
+  if v_aal is distinct from 'aal2' then
+    return false;
+  end if;
+
   return coalesce(
     (select p.is_admin from public.profiles p where p.id = auth.uid()),
     false
@@ -886,3 +915,20 @@ grant execute on function public.admin_stats() to authenticated;
 --    The guard trigger allows this only from a direct SQL session
 --    (auth.uid() is null), never from an app session.
 -- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- 15. Default site_settings rows. The table ships empty, so the whitelist
+--     exposed by `public_settings` would return nothing on a fresh install.
+--     Seeding the keys the app reads makes the Settings page and the public
+--     read useful immediately. `on conflict do nothing` keeps re-runs safe and
+--     never overwrites a value an administrator already chose.
+-- ---------------------------------------------------------------------------
+insert into public.site_settings (key, value) values
+  ('site_name',               to_jsonb('Тендер байна'::text)),
+  ('contact_email',           to_jsonb('info@tender.mn'::text)),
+  ('support_phone',           'null'::jsonb),
+  ('maintenance_mode',        to_jsonb(false)),
+  ('registration_open',       to_jsonb(true)),
+  ('assistant_enabled',       to_jsonb(true)),
+  ('telemetry_retention_days', to_jsonb(30))
+on conflict (key) do nothing;

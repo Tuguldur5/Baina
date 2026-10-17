@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { scrollReveal } from '@/lib/animations';
+import { Container } from '@/components/layout/Container';
 import { mn } from '@/lib/i18n/mn';
 
 type StatKey = 'openBudget' | 'openTenders' | 'companies';
@@ -75,7 +76,7 @@ export function StatsStrip({
       aria-label={mn.landing.stats.map((stat) => stat.label).join(', ')}
       className="border-y border-border"
     >
-      <div className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-border px-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      <Container className="grid grid-cols-1 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         {mn.landing.stats.map((stat) => (
           <motion.div
             key={stat.key}
@@ -97,7 +98,7 @@ export function StatsStrip({
             <p className="mt-1 text-xs text-muted">{stat.desc}</p>
           </motion.div>
         ))}
-      </div>
+      </Container>
     </motion.section>
   );
 }

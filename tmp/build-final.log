@@ -1,0 +1,54 @@
+
+> tender-mn@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (106kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (250kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/21) ...
+   Generating static pages (5/21) 
+   Generating static pages (10/21) 
+   Generating static pages (15/21) 
+ ✓ Generating static pages (21/21)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ƒ /                                    10.7 kB         194 kB
+├ ○ /_not-found                          160 B          87.5 kB
+├ ƒ /about                               175 B          96.2 kB
+├ ƒ /admin                               160 B          87.5 kB
+├ ○ /admin/login                         3.99 kB         214 kB
+├ ƒ /admin/security                      4.17 kB         214 kB
+├ ƒ /api/assistant                       0 B                0 B
+├ ƒ /auth/callback                       1.66 kB         134 kB
+├ ƒ /auth/forgot-password                1.2 kB          177 kB
+├ ƒ /auth/login                          1.32 kB         177 kB
+├ ƒ /auth/register                       2.14 kB         178 kB
+├ ƒ /auth/reset-password                 1.59 kB         243 kB
+├ ƒ /dashboard                           11.3 kB         187 kB
+├ ○ /icon.svg                            0 B                0 B
+├ ƒ /privacy                             160 B          87.5 kB
+├ ƒ /robots.txt                          0 B                0 B
+├ ○ /sitemap.xml                         0 B                0 B
+├ ƒ /tenders                             9.19 kB         172 kB
+├ ƒ /tenders/[id]                        10.1 kB         255 kB
+├ ƒ /tenders/new                         1.74 kB         180 kB
+└ ƒ /terms                               160 B          87.5 kB
++ First Load JS shared by all            87.3 kB
+  ├ chunks/117-1070341f220ad4b6.js       31.7 kB
+  ├ chunks/fd9d1056-b11b2651f33aae7f.js  53.6 kB
+  └ other shared chunks (total)          1.95 kB
+
+
+ƒ Middleware                             84.7 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

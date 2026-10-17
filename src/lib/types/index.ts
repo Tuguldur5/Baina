@@ -1,4 +1,10 @@
-import type { ProposalStatus, TenderStatus, UserRole } from '@/lib/constants';
+import type {
+  ProposalStatus,
+  SubmissionLanguage,
+  TenderStatus,
+  TenderType,
+  UserRole,
+} from '@/lib/constants';
 
 /**
  * DB row types match PostgreSQL column names (snake_case, as returned by
@@ -17,6 +23,27 @@ export interface ProfileRow {
   created_at: string;
 }
 
+/**
+ * Structured PUBLIC (stage-1) tender data — the Oyu Tolgoi-style notice shape:
+ * a tender can be short AND structured. Readable by everyone; nothing here is
+ * confidential (confidential lives in `tender_private_details`).
+ *
+ * `eoi`   = Сонирхол илэрхийлэх урьдчилсан шат (preliminary stage)
+ * `tender` = Үнийн санал авах (formal stage)
+ */
+
+/** Entry of `requirements`: `{ text, mandatory }` (jsonb on the row). */
+export interface TenderRequirement {
+  text: string;
+  mandatory: boolean;
+}
+
+/** Entry of `evaluation_criteria`: `{ name, weight }`, weights sum to 100. */
+export interface TenderEvaluationCriterion {
+  name: string;
+  weight: number;
+}
+
 export interface TenderRow {
   id: string;
   title: string;
@@ -30,6 +57,19 @@ export interface TenderRow {
   created_by_user_id: string;
   winner_proposal_id: string | null;
   created_at: string;
+  /* Structured public fields (null/empty on rows created before they existed). */
+  tender_type: TenderType | null;
+  summary: string | null;
+  scope_items: string[] | null;
+  requirements: TenderRequirement[] | null;
+  required_documents: string[] | null;
+  evaluation_criteria: TenderEvaluationCriterion[] | null;
+  local_preference: string | null;
+  submission_language: SubmissionLanguage | null;
+  contract_duration: string | null;
+  qa_deadline: string | null;
+  expected_award_date: string | null;
+  has_attachments: boolean | null;
 }
 
 /**
@@ -121,6 +161,25 @@ export interface Tender {
   createdByUserId: string;
   winnerProposalId: string | null;
   createdAt: string;
+  /* Structured public fields — always arrays/nullable so old rows render fine. */
+  tenderType: TenderType;
+  summary: string | null;
+  scopeItems: string[];
+  /**
+   * Eligibility requirements for BIDDERS (row column `requirements`).
+   * Named `bidRequirements` in the domain/form layer because the confidential
+   * tier has its own unrelated `requirements` text field.
+   */
+  bidRequirements: TenderRequirement[];
+  requiredDocuments: string[];
+  evaluationCriteria: TenderEvaluationCriterion[];
+  localPreference: string | null;
+  submissionLanguage: SubmissionLanguage;
+  contractDuration: string | null;
+  qaDeadline: string | null;
+  expectedAwardDate: string | null;
+  /** Whether confidential files exist (never their names). */
+  hasAttachments: boolean;
 }
 
 export type TenderWithOwner = Tender & {

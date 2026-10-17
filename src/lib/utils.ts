@@ -21,13 +21,39 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
 }
 
+/**
+ * Display timezone/locale are FIXED so server HTML and client render byte-
+ * identical dates: the server runs UTC while the visitor may be anywhere, and
+ * `date.getFullYear()`-style local accessors made the two disagree (hydration
+ * warnings). Every formatted date goes through these formatters.
+ */
+export const DISPLAY_TIME_ZONE = 'Asia/Ulaanbaatar';
+
+const datePartsFmt = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DISPLAY_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const timeFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: DISPLAY_TIME_ZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** Split a date into {year, month, day} in Asia/Ulaanbaatar. */
+function dayParts(date: Date): { year: number; month: number; day: number } {
+  const [year, month, day] = datePartsFmt.format(date).split('-').map(Number);
+  return { year, month, day };
+}
+
 /** Format a date as "2026 оны 10 сарын 9" (no ICU dependency). */
 export function formatDate(input: string | Date): string {
   const date = toDate(input);
   if (!date) return '';
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
+  const { year, month, day } = dayParts(date);
   return `${year} оны ${month} сарын ${day}`;
 }
 
@@ -35,16 +61,15 @@ export function formatDate(input: string | Date): string {
 export function formatDayMonth(input: string | Date): string {
   const date = toDate(input);
   if (!date) return '';
-  return `${date.getMonth() + 1} сарын ${date.getDate()}`;
+  const { month, day } = dayParts(date);
+  return `${month} сарын ${day}`;
 }
 
 /** Format a date with time: "2026 оны 10 сарын 9 14:30". */
 export function formatDateTime(input: string | Date): string {
   const date = toDate(input);
   if (!date) return '';
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${formatDate(date)} ${hours}:${minutes}`;
+  return `${formatDate(date)} ${timeFmt.format(date)}`;
 }
 
 /** Parse input into a valid Date or null. */

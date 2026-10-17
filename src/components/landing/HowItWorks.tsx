@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Lock, LockOpen } from 'lucide-react';
 import { staggerContainer, fadeInUp, scrollReveal } from '@/lib/animations';
+import { Container } from '@/components/layout/Container';
 import { mn } from '@/lib/i18n/mn';
 
 /**
@@ -11,7 +12,8 @@ import { mn } from '@/lib/i18n/mn';
  */
 export function HowItWorks() {
   return (
-    <section id="how" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16">
+    <section>
+      <Container className="scroll-mt-24 py-16">
       <motion.div {...scrollReveal} className="text-center">
         <h2 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">
           {mn.landing.how.title}
@@ -76,6 +78,7 @@ export function HowItWorks() {
           </div>
         </div>
       </motion.div>
+      </Container>
     </section>
   );
 }

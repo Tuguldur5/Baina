@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Mail } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
+import { Container } from '@/components/layout/Container';
 import { mn } from '@/lib/i18n/mn';
 
 /**
@@ -9,9 +10,10 @@ import { mn } from '@/lib/i18n/mn';
  */
 export function Footer() {
   return (
-    <footer className="px-3 pb-6 pt-10 sm:px-6">
+    <footer className="pb-6 pt-10">
+      <Container>
       <div
-        className="mx-auto max-w-7xl rounded-3xl bg-navy px-6 py-10 ring-1 ring-white/10 sm:px-10"
+        className="rounded-3xl bg-navy px-6 py-10 ring-1 ring-white/10 sm:px-10"
         style={{ boxShadow: '0 20px 50px -25px rgb(15 23 42 / 0.6)' }}
       >
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -138,6 +140,7 @@ export function Footer() {
           </p>
         </div>
       </div>
+      </Container>
     </footer>
   );
 }

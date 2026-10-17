@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { PlusCircle, UserPlus } from 'lucide-react';
 import { scrollReveal } from '@/lib/animations';
+import { Container } from '@/components/layout/Container';
 import { mn } from '@/lib/i18n/mn';
 
 /** Final CTA band with gradient background. */
 export function CtaBand() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16">
+    <section>
+      <Container className="py-16">
       <motion.div
         {...scrollReveal}
         className="relative overflow-hidden rounded-3xl bg-navy px-6 py-14 text-center ring-1 ring-white/10 shadow-card-hover"
@@ -45,6 +47,7 @@ export function CtaBand() {
           </Link>
         </div>
       </motion.div>
+      </Container>
     </section>
   );
 }

@@ -51,6 +51,24 @@ export function mapTender(row: TenderRow): Tender {
     createdByUserId: row.created_by_user_id,
     winnerProposalId: row.winner_proposal_id,
     createdAt: row.created_at,
+    // Structured public fields: rows created before they existed come back as
+    // null -> normalised to empty arrays so the UI never guards every use.
+    tenderType: row.tender_type === 'eoi' ? 'eoi' : 'tender',
+    summary: row.summary ?? null,
+    scopeItems: Array.isArray(row.scope_items) ? row.scope_items : [],
+    bidRequirements: Array.isArray(row.requirements) ? row.requirements : [],
+    requiredDocuments: Array.isArray(row.required_documents)
+      ? row.required_documents
+      : [],
+    evaluationCriteria: Array.isArray(row.evaluation_criteria)
+      ? row.evaluation_criteria
+      : [],
+    localPreference: row.local_preference ?? null,
+    submissionLanguage: row.submission_language ?? 'mn',
+    contractDuration: row.contract_duration ?? null,
+    qaDeadline: row.qa_deadline ?? null,
+    expectedAwardDate: row.expected_award_date ?? null,
+    hasAttachments: row.has_attachments === true,
   };
 }
 

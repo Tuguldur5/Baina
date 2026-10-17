@@ -380,12 +380,119 @@
     animation: shimmer 1.6s linear infinite;
   }
 
+  /* iPhone-style GLASS header surface (see components/layout/Header.tsx).
+     CSS variables so the exact values live in ONE place; light/dark swap by
+     overriding the variables only. Dark mode keeps a visible white border,
+     a tint lighter than the page and a deep shadow so the bar never melts
+     into the background (known bug — do not remove). */
+  .glass-header {
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --glass-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-inset);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    backdrop-filter: blur(24px) saturate(1.5);
+  }
+
+  .dark .glass-header {
+    --glass-bg: rgba(15, 23, 42, 0.55);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+    --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  /* Fixed, subtle backdrop on EVERY public page so the glass header has
+     something real to blur: one soft warm-orange blob (10-15% opacity), one
+     slate/blue blob, plus a faint dot grid that masks out toward the middle.
+     The admin host does NOT render it — only app/(site)/layout.tsx does. */
+  .site-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -10;
+    pointer-events: none;
+    background-image:
+      radial-gradient(42% 36% at 8% 2%, rgb(var(--color-primary-400) / 0.14), transparent 70%),
+      radial-gradient(44% 34% at 94% 0%, rgb(59 139 243 / 0.12), transparent 72%),
+      radial-gradient(60% 44% at 50% 100%, rgb(var(--color-primary-300) / 0.08), transparent 75%);
+  }
+
+  .site-backdrop::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgb(var(--color-text) / 0.18) 1px, transparent 1.2px);
+    background-size: 24px 24px;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.35) 38%, transparent 62%);
+    mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.35) 38%, transparent 62%);
+  }
+
+  .dark .site-backdrop {
+    background-image:
+      radial-gradient(42% 36% at 8% 2%, rgb(var(--color-primary-500) / 0.12), transparent 70%),
+      radial-gradient(44% 34% at 94% 0%, rgb(59 139 243 / 0.10), transparent 72%),
+      radial-gradient(60% 44% at 50% 100%, rgb(var(--brand-jobs) / 0.07), transparent 75%);
+  }
+
+  .dark .site-backdrop::after {
+    background-image: radial-gradient(rgb(148 163 184 / 0.16) 1px, transparent 1.2px);
+  }
+
   .text-gradient-primary {
     background-image: var(--gradient-primary);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
+}
+
+/* ==========================================================================
+   ADMIN PANEL THEME (StarAdmin palette) — LIGHT ONLY, scoped to .admin-theme
+   --------------------------------------------------------------------------
+   The admin host is a separate product surface: it never renders the public
+   chrome and it deliberately does NOT follow the site's light/dark switch.
+   Every value below is scoped under `.admin-theme`, so the public design
+   tokens in `:root` / `.dark` are untouched (and vice versa: a `.dark` class
+   on <html> cannot leak into the panel because these variables are re-declared
+   here at a higher specificity than `:root`).
+
+   Channels are stored WITHOUT the `rgb()` wrapper so Tailwind can still apply
+   opacity via `rgb(var(--a-*) / <alpha-value>)` — same convention as the
+   public tokens above. Hex values are kept in comments for design review.
+   ========================================================================== */
+.admin-theme {
+  /* surfaces */
+  --a-bg: 243 244 246;              /* #F3F4F6 — app frame */
+  --a-panel: 255 255 255;           /* #FFFFFF — main panel */
+  --a-border: 232 234 238;          /* #E8EAEE */
+  --a-ink: 30 30 44;                /* #1E1E2C — text + dark accent cards */
+  --a-muted: 107 114 128;           /* #6B7280 */
+  --a-faint: 241 242 245;           /* #F1F2F5 — watermark + hover rows */
+
+  /* primary orange — active icon, active row accent, primary buttons */
+  --a-primary: 242 159 103;         /* #F29F67 */
+  --a-primary-tint: 253 241 231;    /* #FDF1E7 — active row / chip background */
+
+  /* supporting */
+  --a-info: 59 143 243;             /* #3B8FF3 — info / links / filters */
+  --a-success: 52 177 170;          /* #34B1AA — success / healthy */
+  --a-warning: 224 181 15;          /* #E0B50F — warning / pending */
+  --a-danger: 239 68 68;            /* #EF4444 — errors / destructive */
+
+  /* soft tints for status badges (10–14% backgrounds) */
+  --a-info-tint: 232 242 254;
+  --a-success-tint: 231 246 245;
+  --a-warning-tint: 253 248 226;
+  --a-danger-tint: 254 236 236;
+
+  /* very soft shadows only */
+  --a-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+
+  background-color: rgb(var(--a-bg));
+  color: rgb(var(--a-ink));
+  color-scheme: light; /* native controls stay light even under .dark */
 }
 
 /* Accessibility: respect reduced motion preference globally */

@@ -28,7 +28,7 @@ import type { UserRole } from '@/lib/constants';
  * RLS says the viewer is allowed to see it (owner or shortlisted bidder).
  */
 const PUBLIC_COLUMNS =
-  'id, title, description, category, budget, currency, region, status, deadline, created_by_user_id, winner_proposal_id, created_at, owner_role, owner_masked_name, owner_avatar_url, proposals_count';
+  'id, title, description, category, budget, currency, region, status, deadline, created_by_user_id, winner_proposal_id, created_at, tender_type, summary, scope_items, requirements, required_documents, evaluation_criteria, local_preference, submission_language, contract_duration, qa_deadline, expected_award_date, has_attachments, owner_role, owner_masked_name, owner_avatar_url, proposals_count';
 
 function mapPublicRow(row: PublicTenderRow): TenderWithOwner {
   return {
@@ -55,22 +55,41 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   return data ? mapProfile(data as ProfileRow) : null;
 }
 
-/** Public owner shape for the header (lighter than a full profile). */
+/**
+ * Public owner shape for the header (lighter than a full profile) plus the
+ * `is_admin` flag — the header only uses it to decide whether to show the
+ * "Админ самбар" entry (the flag is readable on your own profile row).
+ */
 export async function getHeaderUser(): Promise<{
   id: string;
   name: string;
   role: UserRole;
   companyName: string | null;
   avatarUrl: string | null;
+  email: string | null;
+  isAdmin: boolean;
 } | null> {
   const profile = await getCurrentProfile();
   if (!profile) return null;
+
+  // Separate, tolerant read: a deployment that has not applied db/admin.sql
+  // yet simply reports `false` instead of breaking the entire public chrome.
+  const supabase = createClient();
+  const { data: adminRow } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', profile.id)
+    .maybeSingle();
+
   return {
     id: profile.id,
     name: profile.name,
     role: profile.role,
     companyName: profile.companyName,
     avatarUrl: profile.avatarUrl,
+    // Shown ONLY to its owner in their own account menu (their own session).
+    email: profile.email,
+    isAdmin: (adminRow as { is_admin?: boolean } | null)?.is_admin === true,
   };
 }
 

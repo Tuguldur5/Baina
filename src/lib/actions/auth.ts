@@ -6,11 +6,13 @@ import {
   loginSchema,
   registerSchema,
   forgotPasswordSchema,
+  updateProfileSchema,
   type LoginInput,
   type RegisterInput,
   type ForgotPasswordInput,
 } from '@/lib/validators/auth';
 import { mn } from '@/lib/i18n/mn';
+import type { UserIntent } from '@/lib/constants';
 import type { ActionResult } from '@/lib/types/index';
 
 function firstError(error: { errors: { message: string }[] }): string {
@@ -52,6 +54,20 @@ export async function register(
   }
 
   const supabase = createClient();
+
+  // Server-side enforcement of the platform registration switch
+  // (site_settings.registration_open, readable through the public_settings
+  // view). A missing key means "open" — the switch only ever closes it.
+  const { data: registrationSetting } = await supabase
+    .from('public_settings')
+    .select('value')
+    .eq('key', 'registration_open')
+    .maybeSingle();
+
+  if (registrationSetting?.value === false) {
+    return { ok: false, error: mn.errors.registrationClosed };
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -60,6 +76,8 @@ export async function register(
         name: parsed.data.name,
         role: parsed.data.role,
         company_name: parsed.data.companyName ?? null,
+        // Mapped onto profiles.intent by public.handle_new_user().
+        intent: parsed.data.intent ?? 'both',
       },
     },
   });
@@ -75,12 +93,45 @@ export async function register(
   };
 }
 
+/** Update the currently signed-in user's onboarding preferences. */
+export async function updateProfile(
+  input: { intent?: UserIntent; companyName?: string }
+): Promise<ActionResult<void>> {
+  const supabase = createClient();
+  const res = await supabase.auth.getUser();
+  if (res.error || !res.data.user) {
+    return { ok: false, error: mn.auth.login.notSignedIn };
+  }
+
+  const parsed = updateProfileSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: firstError(parsed.error) };
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      intent: parsed.data.intent ?? undefined,
+      company_name: parsed.data.companyName ?? undefined,
+    })
+    .eq('id', res.data.user.id)
+    .select('id')
+    .single();
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, data: undefined };
+}
+
 /** Sign out and redirect to the landing page. */
 export async function logout(): Promise<void> {
   const supabase = createClient();
   await supabase.auth.signOut();
   redirect('/');
 }
+
 
 /** Send a password-reset link. Always reports success (no email leak). */
 export async function forgotPassword(

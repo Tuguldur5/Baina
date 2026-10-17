@@ -106,6 +106,26 @@ const config: Config = {
           jobs: rgb('--brand-jobs'),
         },
         warm: rgb('--color-warm'),
+        // Admin panel (StarAdmin palette) — scoped to `.admin-theme` in
+        // globals.css. Never used on the public site.
+        a: {
+          bg: rgb('--a-bg'),
+          panel: rgb('--a-panel'),
+          border: rgb('--a-border'),
+          ink: rgb('--a-ink'),
+          muted: rgb('--a-muted'),
+          faint: rgb('--a-faint'),
+          primary: rgb('--a-primary'),
+          'primary-tint': rgb('--a-primary-tint'),
+          info: rgb('--a-info'),
+          success: rgb('--a-success'),
+          warning: rgb('--a-warning'),
+          danger: rgb('--a-danger'),
+          'info-tint': rgb('--a-info-tint'),
+          'success-tint': rgb('--a-success-tint'),
+          'warning-tint': rgb('--a-warning-tint'),
+          'danger-tint': rgb('--a-danger-tint'),
+        },
       },
       fontFamily: {
         sans: ['var(--font-inter)', ...defaultTheme.fontFamily.sans],
@@ -113,8 +133,15 @@ const config: Config = {
       borderRadius: {
         '2xl': '1rem',
         '3xl': '1.5rem',
+        // Admin panel radii (spec: rows/chips 10px, cards 16px, main panel 20px)
+        a: '10px',
+        'a-card': '16px',
+        'a-panel': '20px',
       },
       boxShadow: {
+        // Admin: very soft shadows only (spec A1)
+        'a-soft': '0 1px 2px rgba(16, 24, 40, 0.04)',
+        'a-card': '0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px -12px rgba(16, 24, 40, 0.10)',
         card: '0 1px 2px 0 rgb(15 23 42 / 0.04), 0 8px 24px -8px rgb(15 23 42 / 0.08)',
         'card-hover':
           '0 2px 4px 0 rgb(15 23 42 / 0.06), 0 16px 40px -12px rgb(15 23 42 / 0.16)',

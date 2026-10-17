@@ -4,10 +4,6 @@ import { mn } from '@/lib/i18n/mn';
 import { SITE_URL } from '@/lib/constants';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ToastProvider } from '@/components/ui/Toast';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
-import { AssistantWidget } from '@/components/assistant/AssistantWidget';
-import { getHeaderUser, getNotifications, getUnreadNotificationCount } from '@/lib/supabase/queries';
 import './globals.css';
 
 const inter = Inter({
@@ -49,36 +45,25 @@ export const viewport: Viewport = {
   ],
 };
 
-export default async function RootLayout({
+/**
+ * Root layout — deliberately minimal: `<html>`, `<body>` and the app-wide
+ * providers only. One deployment serves two hosts, so the chrome cannot live
+ * here:
+ *
+ *   - the public site chrome (Header, Footer, help assistant) lives in the
+ *     `(site)` route group layout — src/app/(site)/layout.tsx
+ *   - the admin panel shell lives in src/app/admin/(panel)/layout.tsx
+ *
+ * URLs are unaffected by the route group.
+ */
+export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const headerUser = await getHeaderUser();
-  const [unread, notifications] = headerUser
-    ? await Promise.all([
-        getUnreadNotificationCount(headerUser.id),
-        getNotifications(headerUser.id, 6),
-      ])
-    : [0, []];
-
   return (
     <html lang="mn" className={inter.variable} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col bg-bg font-sans text-text">
         <ThemeProvider>
-          <ToastProvider>
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[80] focus:rounded-full focus:bg-primary-500 focus:px-4 focus:py-2 focus:text-navy"
-            >
-              {mn.common.skipToContent}
-            </a>
-            <Header user={headerUser} unread={unread} notifications={notifications} />
-            <main id="main-content" className="flex-1 pt-[84px] sm:pt-[92px]">
-              {children}
-            </main>
-            <Footer />
-            {/* Help assistant: floats in the bottom-right corner of every page. */}
-            <AssistantWidget />
-          </ToastProvider>
+          <ToastProvider>{children}</ToastProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -19,6 +19,24 @@ export const ITEMS_PER_PAGE = 12;
 export const TENDER_DESCRIPTION_MIN_LENGTH = 20;
 export const TENDER_DESCRIPTION_MAX_LENGTH = 2000;
 
+/**
+ * Structured PUBLIC (stage-1) tender fields — the Oyu Tolgoi-style notice
+ * shape. Limits mirror the CHECK constraints in db/schema.sql; the Zod
+ * validator and the create form both read them from here.
+ */
+export const TENDER_SUMMARY_MAX_LENGTH = 600;
+export const SCOPE_ITEMS_MAX = 15;
+export const SCOPE_ITEM_MAX_LENGTH = 200;
+export const REQUIREMENTS_MAX = 15;
+export const REQUIREMENT_MAX_LENGTH = 200;
+export const REQUIRED_DOCUMENTS_MAX = 12;
+export const REQUIRED_DOCUMENT_MAX_LENGTH = 200;
+export const EVALUATION_CRITERIA_MAX = 15;
+export const EVALUATION_CRITERION_NAME_MAX = 80;
+export const EVALUATION_WEIGHT_TOTAL = 100;
+export const LOCAL_PREFERENCE_MAX_LENGTH = 200;
+export const CONTRACT_DURATION_MAX_LENGTH = 80;
+
 /** Avatar upload constraints (validated on client AND server). */
 export const AVATAR_MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
 export const AVATAR_ACCEPTED_MIME_TYPES = [
@@ -84,8 +102,24 @@ export const MIN_TOUCH_TARGET_PX = 44;
 export const USER_ROLES = ['user', 'company'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
+/**
+ * Onboarding intent: what the account mainly wants to DO. Orders the
+ * dashboard UI and CTAs only — it never restricts permissions (mirrors the
+ * `profiles_intent_check` constraint in db/schema.sql).
+ */
+export const USER_INTENTS = ['post', 'bid', 'both'] as const;
+export type UserIntent = (typeof USER_INTENTS)[number];
+
 export const TENDER_STATUSES = ['open', 'closed', 'awarded'] as const;
 export type TenderStatus = (typeof TENDER_STATUSES)[number];
+
+/** Tender kinds (mirror `tenders_tender_type_check`). */
+export const TENDER_TYPES = ['eoi', 'tender'] as const;
+export type TenderType = (typeof TENDER_TYPES)[number];
+
+/** Language the bidder must write their proposal in (mirror the DB check). */
+export const SUBMISSION_LANGUAGES = ['mn', 'en', 'both'] as const;
+export type SubmissionLanguage = (typeof SUBMISSION_LANGUAGES)[number];
 
 export const PROPOSAL_STATUSES = ['pending', 'shortlisted', 'accepted', 'rejected'] as const;
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number];

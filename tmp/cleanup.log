@@ -1,0 +1,11 @@
+attempt 1: timeout expired
+attempt 2: timeout expired
+CLEANUP FAILED — run manually in the Supabase SQL editor
+round 1: not reachable yet, waiting 3 min...
+attempt 1: timeout expired
+attempt 2: timeout expired
+CLEANUP FAILED — run manually in the Supabase SQL editor
+round 2: not reachable yet, waiting 3 min...
+attempt 1: before=0 after=0 profiles=0
+CLEANUP OK
+CLEANUP SUCCEEDED on round 3

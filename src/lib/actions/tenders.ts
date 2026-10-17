@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import {
   createTenderFullSchema,
+  updateTenderSchema,
   closeTenderSchema,
   awardProposalSchema,
   shortlistProposalSchema,
@@ -35,8 +36,32 @@ import type { ActionResult, TenderAttachment } from '@/lib/types/index';
  * typed ActionResult with Mongolian error messages. Parameterized queries only.
  */
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function firstError(error: { errors: { message: string }[] }): string {
   return error.errors[0]?.message ?? mn.errors.genericText;
+}
+
+/**
+ * Suspended accounts are refused by the INSERT policies themselves
+ * (db/admin.sql §12), and Postgres reports that as a raw policy error. Read
+ * the caller's own profile status (RLS allows the own row) and return a clear
+ * Mongolian notice instead of the engine message.
+ */
+async function insertErrorMessage(
+  supabase: ReturnType<typeof createClient>,
+  dbError: { message?: string } | null,
+  fallback: string
+): Promise<string> {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('status')
+    .maybeSingle();
+
+  if ((profile as { status?: string } | null)?.status === 'suspended') {
+    return mn.errors.suspended;
+  }
+  return dbError?.message ?? fallback;
 }
 
 function sanitizeFileName(name: string): string {
@@ -131,12 +156,29 @@ export async function createTender(
       currency: 'MNT',
       deadline: data.deadline,
       created_by_user_id: user.id,
+      // Structured public (stage-1) fields. `has_attachments` only reveals
+      // WHETHER confidential files exist — never their names.
+      tender_type: data.tenderType,
+      summary: data.summary,
+      scope_items: data.scopeItems,
+      requirements: data.bidRequirements,
+      required_documents: data.requiredDocuments,
+      evaluation_criteria: data.evaluationCriteria,
+      local_preference: data.localPreference,
+      submission_language: data.submissionLanguage,
+      contract_duration: data.contractDuration,
+      qa_deadline: data.qaDeadline,
+      expected_award_date: data.expectedAwardDate,
+      has_attachments: files.length > 0,
     })
     .select('id')
     .single();
 
   if (tenderError || !tender) {
-    return { ok: false, error: tenderError?.message ?? mn.errors.genericText };
+    return {
+      ok: false,
+      error: await insertErrorMessage(supabase, tenderError, mn.errors.genericText),
+    };
   }
 
   // 2) confidential stage-2 details (RLS: owner only)
@@ -286,7 +328,10 @@ export async function submitProposal(
     .single();
 
   if (error || !data) {
-    return { ok: false, error: error?.message ?? mn.errors.genericText };
+    return {
+      ok: false,
+      error: await insertErrorMessage(supabase, error, mn.errors.genericText),
+    };
   }
 
   // Documents -> private `proposal-files` bucket.
@@ -537,6 +582,132 @@ export async function awardProposal(
 
   revalidateTender(parsed.data.tenderId);
   return { ok: true, data: { id: parsed.data.tenderId } };
+}
+
+/**
+ * Owner edits their tender (public fields + confidential details).
+ *
+ * FormData: "tenderId" + "payload" (JSON of the create shape). Attachments are
+ * deliberately NOT editable — replacing a document would orphan the object in
+ * the private bucket (same rule as proposal editing).
+ *
+ * Refused when:
+ *   - the viewer is not the owner (RLS would refuse too, this is for the message)
+ *   - the tender is closed/awarded or its deadline has passed
+ *   - a proposal is already shortlisted or accepted AND the edit would change
+ *     the SCOPE of the competition (a bidder decided on one scope; silently
+ *     rewriting it would make their bid meaningless)
+ */
+export async function updateTender(
+  formData: FormData
+): Promise<ActionResult<{ id: string }>> {
+  const tenderId = String(formData.get('tenderId') ?? '');
+  const rawPayload = formData.get('payload');
+  if (!UUID_RE.test(tenderId)) {
+    return { ok: false, error: mn.errors.notFoundResource };
+  }
+
+  const parsed = updateTenderSchema.safeParse(
+    typeof rawPayload === 'string' ? JSON.parse(rawPayload) : null
+  );
+  if (!parsed.success) {
+    return { ok: false, error: firstError(parsed.error) };
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: mn.errors.unauthorized };
+  }
+
+  const { data: tender } = await supabase
+    .from('tenders')
+    .select(
+      'id, created_by_user_id, status, deadline, tender_type, summary, scope_items, requirements, required_documents, evaluation_criteria, local_preference, submission_language, contract_duration, qa_deadline, expected_award_date'
+    )
+    .eq('id', tenderId)
+    .maybeSingle();
+
+  if (!tender || tender.created_by_user_id !== user.id) {
+    return { ok: false, error: mn.errors.forbidden };
+  }
+  if (tender.status !== 'open' || new Date(tender.deadline).getTime() <= Date.now()) {
+    return { ok: false, error: mn.tenderDetail.editOnlyOpen };
+  }
+
+  const data = parsed.data;
+
+  // Scope-changing edits are locked once the owner has already advanced a bid.
+  const { data: decided } = await supabase
+    .from('proposals')
+    .select('id')
+    .eq('tender_id', tenderId)
+    .in('status', ['shortlisted', 'accepted'])
+    .limit(1);
+  const scopeLocked = (decided ?? []).length > 0;
+
+  const scopeChanged =
+    JSON.stringify(tender.scope_items ?? []) !== JSON.stringify(data.scopeItems) ||
+    JSON.stringify(tender.requirements ?? []) !== JSON.stringify(data.bidRequirements) ||
+    JSON.stringify(tender.required_documents ?? []) !==
+      JSON.stringify(data.requiredDocuments) ||
+    JSON.stringify(tender.evaluation_criteria ?? []) !==
+      JSON.stringify(data.evaluationCriteria) ||
+    tender.deadline !== data.deadline ||
+    tender.tender_type !== data.tenderType;
+
+  if (scopeLocked && scopeChanged) {
+    return { ok: false, error: mn.tenderDetail.editScopeLocked };
+  }
+
+  const { error: updateError } = await supabase
+    .from('tenders')
+    .update({
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      region: data.region,
+      budget: data.budget,
+      deadline: data.deadline,
+      tender_type: data.tenderType,
+      summary: data.summary,
+      scope_items: data.scopeItems,
+      requirements: data.bidRequirements,
+      required_documents: data.requiredDocuments,
+      evaluation_criteria: data.evaluationCriteria,
+      local_preference: data.localPreference,
+      submission_language: data.submissionLanguage,
+      contract_duration: data.contractDuration,
+      qa_deadline: data.qaDeadline,
+      expected_award_date: data.expectedAwardDate,
+    })
+    .eq('id', tenderId)
+    .eq('created_by_user_id', user.id);
+
+  if (updateError) {
+    return { ok: false, error: updateError.message };
+  }
+
+  const { error: privateError } = await supabase
+    .from('tender_private_details')
+    .update({
+      full_description: data.fullDescription,
+      requirements: data.requirements || null,
+      address: data.address || null,
+      contact_name: data.contactName || null,
+      contact_phone: data.contactPhone || null,
+      contact_email: data.contactEmail || null,
+    })
+    .eq('tender_id', tenderId);
+
+  if (privateError) {
+    return { ok: false, error: privateError.message };
+  }
+
+  revalidateTender(tenderId);
+  return { ok: true, data: { id: tenderId } };
 }
 
 /** Owner rejects a single proposal (without awarding the tender). */

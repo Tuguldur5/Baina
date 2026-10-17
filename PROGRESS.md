@@ -2,6 +2,202 @@
 
 Монгол хэл дээрх талын тендерийн маркетплейс. Энэ файл төслийн "санах ой" юм.
 
+## Current status
+
+### STEP 1 — «Компанийн сан»-ыг хассан (гүйцэтгэсэн)
+
+- **Учир шалтгаан:** нийтийн компанийн санд жинхэнэ зориулалт байгаагүй (профайлууд
+  world-readable биш тул агуулга үүсгэх боломжгүй байв, зөвхөн redirect л байсан).
+- **Хассан:** header-ийн навигац (desktop pills + mobile panel — нэг `buildNavLinks`),
+  `CommandSearch`-ийн хурдан холбоос, `mn.header.navCompanies` түлхүүр.
+  `/companies/[id]` огт байгаагүй (зөвхөн redirect байсан), sitemap / dashboard /
+  chatbot knowledge дээр `/companies` холбоос байгаагүй — урьдчилсан шалгалтаар
+  баталсан (`grep` → 0).
+- **Хадгалсан (зориуд):** `/companies` route өөрөө redirect хэвээр
+  (`/tenders?owner=company`) — хуучин bookmark-ууд 404 болохгүй; метадата-г цэвэрлэсэн.
+  АДМИН `/companies` хуудас (компаниудын жагсаалт) өөр зүйл — хэвээр үлдээсэн.
+  Footer-ийн `/tenders?owner=company` холбоос («Компанийн тендерүүд») мөн хэвээр —
+  энэ нь шүүлтүүр, сан биш.
+- **Нэмсэн:** header навигац 2 л холбоостой үлдэх нь хэт хомс тул зөвхөн «Хэрхэн
+  ажилладаг» (`mn.header.navHow`) нэмсэн → `/about#how`. `/about` дээр тэрхүү
+  anchor-ийг үүсгэж, дугуйт дугаарын дараа байрлуулсан (`id="how"`, `scroll-mt-28`,
+  `mn.landing.how.*` текстийг дахин ашигласан — шинэ текст зохиогүй). STEP 6-д
+  EOI-тайгаар өргөтгөнө. Хэв/засвар дээр огт хүрээгүй (зөвхөн жагсаалтын массив).
+- **Шалгалт:** `npx tsc --noEmit` 0 · `navCompanies`/public `/companies` холбоос 0.
+  Chatbot-ийн мэдээлэл `src/lib/assistant/knowledge.ts`-д байдаг (задлалтын үеэр
+  task-ийн `src/lib/chat/knowledge.ts` гэсэн зам буруу байв) — «Компанийн сан» тэнд
+  байгаагүй, STEP 6-д EOI мэдээлэл нэмнэ.
+
+- **Next: STEP 2** — DB бүтэц (tender_type/summary/scope/requirements/documents/
+  evaluation_criteria/local_preference/language/duration/dates/has_attachments) +
+  `public_tenders` + Zod + types + actions + seed.
+
+- ✅ **S0 — Subdomain архитектур (admin.baina.mn)**: host-based routing, `(site)` route group,
+  админ shell + login + MFA хуудас, README/SQL заавар.
+- ✅ **S1 — Админ DB давхарга**: `is_admin()` дээр aal2 шаардлага нэмсэн (gap), `db/admin.sql`
+  live DB дээр амжилттай apply болов, `node scripts/verify-admin.mjs` → **40/40 PASS**,
+  `/about` + `/privacy` дээр операторын хандалтын мэдэгдэл нэмсэн, түр хязгаарлагдсан
+  хэрэглэгч/бүртгэл хаалтын монгол мэдэгдэл + site_settings анхны утгууд.
+- ✅ **PHASE 0 — Security cleanup + admin tooling** (шинэ):
+  - `scripts/_db.mjs`: `DATABASE_POOLER_URL` (IPv4 session pooler) эхэлж ашиглана,
+    үгүй бол `DATABASE_URL`; 12s socket timeout + 6 attempts + short backoff;
+    амжилтгүй бол хэвлэх SQL-тэй мэдээлнэ. README + `.env.example`-д тайлбарласан.
+  - `scripts/cleanup-fixtures.mjs` (`npm run admin:cleanup`): `verify-%` хаягийг устгаж
+    0 үлдсэн эсэхийг баталгаажуулна (мөн урамшуулал SQL хэвлэнэ).
+  - `scripts/verify-admin.mjs`: **random per-run нууц үг**, `finally` + SIGINT/SIGTERM дээр
+    cleanup, төгсгөлд "zero verify-% rows" assert (FAIL бол `failed=true`).
+  - `scripts/make-admin.mjs` (`npm run admin:make -- email`) — бүртгэлгүй бол татгалзаж,
+    parameterized UPDATE, дараагийн алхмуудыг хэвлэнэ.
+    `scripts/list-admins.mjs` (`npm run admin:list`) — маскласан имэйл.
+  - `db/admin.sql` §15 fix: `to_jsonb(null::text)` = SQL NULL → NOT NULL зөрчлийг
+    `'null'::jsonb`-оор засаж, `npm run db:apply` бүрэн амжилттай (site_settings seed).
+  - Live DB: fixture хаяг **0 үлдсэн** (хуучин cleanup loop амжилттай), `ADMINS=0`.
+  - `npx tsc --noEmit` 0 · `npm run lint` 0.
+  - Агуулга: цэвэрлэгээ/баталгаажуулалтын скриптүүд энэ удаа DB хүрээгүй
+    (flaky route) тул background loop (`tmp/tool-test.log`, `tmp/verify.log`)-оор
+    `admin:cleanup` + `admin:verify` дахин ажиллаж байна — **verify 40/40 дахин
+    баталгаажуулах шаардлагатай**.
+- ✅ **ADMIN DESIGN REDO — A0 (засвар) + A1–A3 (шинэ)**:
+  - **A0 (чухал засвар).** `src/lib/i18n/mn.ts` ажлын tree дээр **112 мөр болж
+    тайрагдсан** байсан (HEAD дээр 841 мөр, 25 key group) → 23 syntax алдаа,
+    `npx tsc` бүтэн улаан. HEAD-ээс сэргээж, тайрагдахад алга болсон бүх
+    түлхүүрийг (`navDashboard`, `navCompanies`, `themeLabel`,
+    `viewAllNotifications`, `searchCommand*`, `searchOpen`, `notSignedIn`,
+    `suspended`, `registrationClosed`, `intent*`, `static.adminNotice`) болон
+    шинэ `mn.admin.*` блокийг (rail/sidebar/tabs/activity/page/overview/login/
+    otp/security) нэмсэн. Хуучирсан `src/lib/i18n/mn.types.ts` (хэн ч import
+    хийдэггүй, хоёр хувилбартай ч таарахгүй) устгасан — `Mn` нь одоо
+    `typeof mn`-ээс гарна. `src/lib/actions/auth.ts` дээрх давхардсан
+    `updateProfile`/`logout` export + дутуу import (`updateProfileSchema`,
+    `UserIntent`) зассан. **`npx tsc --noEmit` 0 · `npm run lint` 0.**
+  - **A1 — токен + shell.** `.admin-theme` (globals.css) дор StarAdmin палитр:
+    `--a-bg #F3F4F6`, `--a-panel #FFFFFF`, `--a-border #E8EAEE`, `--a-ink #1E1E2C`,
+    `--a-muted #6B7280`, `--a-faint #F1F2F5`, `--a-primary #F29F67`,
+    `--a-primary-tint #FDF1E7`, info `#3B8FF3` / success `#34B1AA` / warning
+    `#E0B50F` / danger `#EF4444` + 4 soft tint. Публик токенд хүрээгүй (scoped,
+    `color-scheme: light` — админ **зөвхөн light**). Tailwind-д `a-*` өнгө,
+    `rounded-a`(10) / `a-card`(16) / `a-panel`(20), `shadow-a-soft`/`a-card`.
+    `AdminShell`: `h-dvh` frame (хуудас өөрөө хэзээ ч scroll хийхгүй — зөвхөн
+    main panel), rail 56px + (topbar 48px + sidebar 280px + main panel),
+    main = `rounded-a-panel m-2 ml-0 overflow-y-auto`, дотор `max-w-[1280px]`
+    төвлөрсөн, Ctrl/Cmd+B хумина.
+  - **A2 — icon rail.** Лого плита (32px) + 7 icon (40px, tooltip, `aria-label`)
+    — Хянах самбар/Тендер/Хэрэглэгч/Хяналт/Харилцаа/Систем/Тохиргоо; идэвхтэй
+    = orange-tint дөрвөлжин + orange icon, hover = faint. Доод талд «Сайт руу
+    буцах» + avatar (эхний үсэг) → цэс (Миний аюулгүй байдал, Гарах).
+  - **A3 — жинхэнэ sub-menu (accordion).** `src/lib/admin/nav.ts` = цорын ганц
+    эх сурвалж (rail + sidebar + tabs + palette бүгд уншина). 6 бүлэг /
+    17 leaf, `ТЕНДЕР ПЛАТФОРМ` + `СИСТЕМ` гэсэн 2 section label, бүлэг бүр
+    accordion (chevron эргэлдэнэ, Framer Motion height, зүүн талд нимгэн
+    босоо шугам, 32px sub-item). Нээлттэй төлөв `localStorage` (try/catch),
+    одоогийн бүлэг авто-нээлттэй, keyboard (Enter/Space, ↑↓, ←→,
+    `aria-expanded`, `role="tree"`). Идэвхтэй sub-item = orange-tint + 2px
+    orange зүүн accent; эцэг бүлэг дээр orange цэг.
+- ✅ **ADMIN DESIGN REDO — A4 (chrome) + A5 (home) + бүх админ route (шинэ)**:
+  - **A4.** `AdminShell` дээр top bar (sidebar toggle, **tab strip** — сессийн
+    `sessionStorage`-д хадгалагдана, «+» → command palette, right panel toggle),
+    мобайл drawer (rail + sidebar нэг slide-in панел), `AdminPageHeader`
+    (breadcrumb + 22px гарчиг + underline page tabs), `AdminActivityPanel`
+    (бодит `audit_logs`, 320px, xl дээр анимейшнтээр), `AdminCommandPalette`.
+  - **A5.** `/` дээр watermarked мэндчилгээ, бодит баннер (гомдол/түдгэлзсэн тоо),
+    `AdminOverviewComposer`, `AdminKpiStrip`, `AdminCharts` (SVG, хуурамч тоо байхгүй),
+    `AdminWorkQueue`.
+  - **Админ route-ууд бүрэн нээгдэв** (A4-ийн chrome-д зориулагдсан «target» хуудас
+    байхгүй байсан → rail/sidebar/tabs/palette-ийн 17 leaf-ийн бүгд 404 байв).
+    Бодит өгөгдөлтэй 5 хуудас: `/users` (server-side шүүлтүүр `/users?filter=user|company|admin`),
+    `/companies`, `/tenders`, `/reports`, `/audit-log` — `src/lib/admin/queries.ts`-ийн
+    `getAdminProfiles` (шүүлт нэмсэн), `getReports` (`entity_type`/`entity_id` нэмсэн),
+    `getAdminTenders`, `getAuditLog`-ийг **анх удаа** ашиглаж байна.
+    Үлдсэн 11 leaf-ийг `AdminSectionPlaceholder` (дээр дор хуваалцсан) + нарийн
+    route файл (`/proposals`, `/categories`, `/notifications/{broadcast,announcements}`,
+    `/chatbot`, `/system/{errors,performance,analytics,health}`,
+    `/settings/{general,mode}`) — хуудасны бүтэц/эрх/холбоос бодит, агуулга дараагийн
+    шатанд. Шинэ хүснэгт (`AdminTable` + `AdminStatusPill`) + `mn.admin.list.*` түлхүүрүүд.
+  - **Шийдвэр: `[...slug]` catch-all-г туршиад устгасан.** `notFound()` нь
+    (panel)-ийн async layout-ын shell-аа flush хийсний **дараа** дуудагдах тул Next
+    **200** өгч байв (нутгийн шалгалтаар баталсан). Энгийн route файл нь path-ийг
+    render-аас өмнө мэддэг тул үнэн **404** үлддэг — middleware-ийн гэрээнээс
+    хамааран энэ нь чухал (admin host дээр танилдаагүй path → 404, хуурамч хэсэг биш).
+    Тэгээд `nav.ts`-д нэмсэн `isAdminNavPath()`-ийг эргүүлж устгасан (хэрэглээгүй код).
+  - **Засварууд:** `AdminKpiStrip` байхгүй `mn.currency` ашигласан байсан (`npx tsc`
+    **1 алдаа**) → `formatMNT`/`formatNumber` (нутгийн `toLocaleString('mn-MN')` нь
+    ICU-аас хамаарч hydration-ийн зөрүү үүсгэж болзошгүй тул); `AdminSidebar`-д
+    `role="treeitem"` дээр `aria-selected` нэмсэн (jsx-a11y сануулга арилсан).
+  - **Шалгалт (бодит aal2 админ сессиор, `next start`, `Host: admin.localhost`):**
+    `tmp/verify-admin-ui.mjs` throwaway админ үүсгэж TOTP-оор aal2 болгон,
+    `@supabase/ssr` cookie-г мөрдөж хуулан бүх route-ийг авч үзсэн → **26/26 PASS**:
+    публик host дээр `/users` → 404 · session-гүй админ host `/tenders` → 307 `/login` ·
+    `admin_stats()` → users=5, tenders=8, openReports=0 · `/` (A5 мэндчилгээ),
+    `/users` ×4 шүүлт, `/companies`, `/tenders`, `/reports`, `/audit-log` → 200,
+    placeholder-гүй · 11 placeholder → 200 · танилдаагүй path → **404** ·
+    `admin-theme` + `aria-label="Хянах самбар"` байна · fixture цэвэрлэгээ
+    `users=0 profiles=0 flaggedAdmins=0`. `tsc` 0 · `lint` 0 · `build` ✓ (38 route).
+  - **Анхаар:** `docs/continuation-prompt.md` + `docs/admin-design-prompt.md`
+    **энэ repo-д байхгүй** (disk дээр ч, git-д ч алга) → A1–A8-ийг код дэххийн
+    `spec A*` тайлбар болон PROGRESS-аас сэргээсэн. A6/A7/A8-ийн бүрэн заавар
+    шаардлагатай бол файлуудыг дахин олж авна уу.
+- **Next: A6 (login/OTP)** — `AdminLoginForm`/`AdminMfaPanel` S0-оос байгаа, харин
+  шинэчилж шалгаагүй (логины хуудас 200 гэдгийг л шалгасан). Дараа нь A7/A8
+  (заавар файл байхгүй тул агуулгыг дахин тогтоох).
+- **Next: админ дээрх үйлдлүүд** — placeholder-уудыг жинхэнэ хуудас болгох:
+  `/users` дээр `admin_set_user_status` (түдгэлзүүлэх/сэргээх) + `admin_reveal_email`
+  (audit-тай) үйлдлүүд, гомдол шийдвэрлэх (`reports.status` өөрчлөх),
+  `admin_proposals_meta` дээрх саналын жагсаалт. Мөн **гомдол гаргах** нийтлэг
+  зам байхгүй (`reports` үргэлж хоосон) — тэгээд `/reports` хуудас үүнийг
+  хүлээцтэй харуулж байна.
+- **Next: phase 2** — role-aware dashboard: `intent` + `saved_tenders` DB (rls/schema,
+  apply), register-step «Та юу хийх вэ?», nested `/dashboard/*` routes + sidebar,
+  adaptive overview, public `/companies` directory (replace the interim redirect),
+  old-tab link/redirect updates.
+- **Payments: planned later** (тухайн фазд төлбөртэй холбоотой юу ч хийхгүй).
+
+### PHASE 1 — UI foundation ✅ (шилжүүлсэн)
+
+- **Нэг `Container`** (`src/components/layout/Container.tsx`): `max-w-[1440px]`
+  + `px-4 sm:px-6 lg:px-8 xl:px-10`, `as="section"` дэмжинэ. Ашигласан: header,
+  footer, landing бүх section (Hero, StatsStrip, HowItWorks, FeaturedTenders,
+  CategoriesGrid, Comparison, CtaBand), `/tenders`, `/tenders/[id]`, `/tenders/new`,
+  `/dashboard(+loading)`, `/about|terms|privacy` (дотор нь унших нэг ширхэг
+  `max-w-3xl` багана үлдсэн), `AuthShell`, `app/loading.tsx`.
+- **Шинэ glass header** (`Header.tsx` бүрэн шинэчилсэн): `.glass-header` utility
+  (globals.css, CSS хувьсагчаар: blur(24px) saturate(1.5), light
+  `rgba(255,255,255,.60)` / dark `rgba(15,23,42,.55)` + inset highlight), Container
+  өргөнтэй, `fixed top-3 z-40`, **56px → 52px scroll>8px** (анимац), dark-д
+  мөөнөө харагдах border/shadow. Хуучин navy pill + homepage «blended» variant
+  арилсан — бүх хуудас адилхан. Logo `variant` сэдэвийг дагана (light→ink,
+  dark→white). Top-of-page navy gradient project дээр олдоогүй (zөвхөн header
+  pill-ийн navy байсан — арилсан).
+- **Header агуулга**: nav pills (Тендерүүд / Компанийн сан / Миний самбар —
+  нэвтрээгүй бол `/auth/login?next=/dashboard`) `layoutId` идэвхтэй pill;
+  search icon → **command overlay** (`CommandSearch`, Ctrl/⌘+K, Enter →
+  `/tenders?q=`, focus trap + Esc + scroll lock); theme toggle (token-based);
+  bell → dropdown-ийн **сүүлийн 5 мэдэгдэл + «Бүгдийг харах»**
+  (`/dashboard/notifications`); улбар шар `+ Тендер үүсгэх` (мобайл дээр зөвхөн
+  icon); avatar dropdown = хэрэглэгч блок (avatar, нэр, role badge, email),
+  Миний самбар / Профайл / Админ самбар (absolute admin-host URL) / гарах —
+  **давхардсан холбоосууд арилсан**; мобайл = лого + search + «+» + hamburger →
+  анимейшнт **glass rounded-3xl панел** (route change/outside/Esc, scroll lock,
+  focus trap). Z-index: header 40, панел 50, chat 55, modal 60, toast 70 (байсанчлан).
+- **Backdrop**: `(site)` layout дээр нэг `fixed .site-backdrop` (дулаан улбар шар
+  blob 12-14% + цэнхэр blob + mask fade dot grid, light/dark). Админ host дээр БАЙХГҮЙ.
+- **Hydration засалт**: `DeadlineCountdown` одоо **секундгүй** (`2 хоног 04:15`),
+  сервер дээр тогтмол placeholder (`—`), mount-ийн дараа л утга, **60с** шинэчилнэ;
+  `formatDate/formatDateTime/formatDayMonth` одоо **Asia/Ulaanbaatar** фикст
+  timezone + фикст locale-аар (сервер=клиент адил HTML).
+- **Нэмэлт**: `getHeaderUser` одоо `email` буцаана (зөвхөн өөрийн dropdown-д),
+  i18n шинэ түлхүүрүүд (`navDashboard`, `navCompanies`, `searchCommand*`,
+  `viewAllNotifications`, `themeLabel`), `/companies` одоо **түр redirect**
+  (`/tenders?owner=company`, noindex) — бодит directory = Phase 2.
+- **Шалгалт**: `npx tsc --noEmit` 0 · `npm run lint` 0 · `npm run build` ✓ (22 route)
+  · `npm start` дээр HTTP: `/ /tenders /about /companies` 200, `/dashboard` 307→login,
+  `/admin` 404, админ host `/` 307→`/login` + `x-robots-tag`, HTML дээр
+  `glass-header` + `site-backdrop` + `max-w-[1440px]` + countdown placeholder `—`
+  байгааг баталгаажуулсан.
+
+**PHASE 1 TODO (Phase 3-д шилжүүлсэн шийдвэрүүд)**: auth decorative panel-ийн
+хуурамч `₮ 35,000,000` карт (Phase 3), «Кирилл/Латин» toggle (Phase 3),
+TenderCard шинэчилж бүх query-д `description` нэмэх (Phase 3).
+
 ## Phase checklist
 
 - ✅ **Phase 1** — Scaffold, хамаарал, Tailwind design tokens, `src/lib/i18n/mn.ts`, utils, `.env.example`, README
@@ -21,7 +217,12 @@
 
 - `npx tsc --noEmit` ✅ (алдаагүй)
 - `npm run lint` ✅ (ануулга/алдаагүй)
-- `npm run build` ✅ (16 route)
+- `npm run build` ✅ (38 route: публик 20 + админ 17 + favicon)
+- `node tmp/verify-admin-ui.mjs` ✅ (26/26 — бодит aal2 админ сессиор админ host-ын
+  бүх route, placeholder, танилдаагүй path → 404, session-гүй → 307, публик → 404.
+  DB-ийн шууд IPv6 маршрут нэг удаа тасарсан тул fixture цэвэрлэгээ дутсаныг
+  `npm run admin:cleanup`-аар дахин цэвэрлэж `users=0 profiles=0 flaggedAdmins=0`-ийг
+  `tmp/fixture-count.mjs`-ээр баталсан. `DATABASE_POOLER_URL` тохируулаагүй.)
 - `npm run db:apply` ✅ (schema → rls → seed → storage, дахин ажиллуулахад аюулгүй)
 - `npm run db:verify` ✅ (anon уншлага, FTS, нэвтрэлт, RLS block/allow, test row цэвэрлэгдэнэ)
 - `npm run db:verify-rls` ✅ (нууц мэдээлэл anon/шалгаруулаагүй хэрэглэгчид хаалттай, эзэн/шалгарсан хэрэглэгчид нээлттэй)
@@ -289,7 +490,103 @@ signed URL. **Нээлттэй асуулт:** зарлагч санал илг�
 шинэ UI-г зөвхөн `tsc`+`build`-ээр баталсан; мөн `npm run db:apply` дахин ажиллуулж байж шинэ
 constraint болон `proposal-files` bucket үүснэ.
 
+## Админ самбар — S0 (subdomain архитектур)
+
+**Шийдвэрүүд (асуулт асуухгүйгээр):**
+
+1. **Аль замыг админ host дээр үзүүлэх вэ.** Нэг дүрэм: админ host дээр угтваргүй (`/`) бүх зам
+   `src/app/admin/*` деректорийн харгалзах route руу `rewrite` хийнэ. Ингэснээр админд хамаарахгүй
+   хуудсууд (`/about`, `/dashboard`, `/auth/login`, `/api/assistant`) нь **өөрөө 404** болно —
+   тусад нь хориглох жагсаалт барих шаардлагагүй, мартах эрсдэл байхгүй. Зөвхөн framework-ийн
+   дотоод зам (`/_next/*`), telemetry API (`/api/telemetry`) ба админы `robots.txt` л шууд өнгөрнө.
+2. **Нийтийн host дээрх `/admin`.** "Байхгүй" гэдгийг илрүүлэхгүйн тулд ямар ч route-той таарахгүй
+   зам руу `rewrite` хийж, Next-ийн өөрийн 404 хуудсыг **жинхэнэ 404 статустай** буцаана
+   (баталгаа: `curl -H 'Host: localhost:3000' /admin` → `404`).
+3. **Route group.** Нийтийн chrome (Header/Footer/Assistant) `src/app/(site)/layout.tsx` руу,
+   админ shell `src/app/admin/(panel)/layout.tsx` руу шилжсэн тул root layout нь зөвхөн
+   `html/body` + provider. URL өөрчлөгдөөгүй (`git mv` ашигласан). Админ login нь (panel) shell-ийн
+   ГАДНА ("src/app/admin/login") — тэгэхгүй бол нэвтрэх хуудсаа өөрөө хаах байсан.
+4. **Хаалт нь 2 давхарга.** Middleware дээр session-гүй бол шууд `307 → /login` (панелийн HTML
+   огт илгээгдэхгүй), дараа нь `requireAdmin()` (src/lib/admin/require-admin.ts): нэвтрээгүй →
+   `/login`, админ биш → **404** (403 биш — панель байгааг илрүүлэхгүй), aal1 → `/security`.
+5. **Session тусдаа.** Бүх Supabase helper `domain` cookie тавихгүй (шалгасан) → админ ба нийтийн
+   session зориуд тусдаа. "Гарах" нь `signOut({ scope: 'local' })` — нөгөө host-ийн session үлдэнэ.
+6. **Админ хаяг бүр `adminHref()`/`getAdminUrl()`** (`src/lib/hosts.ts`): панель дотор зөвхөн
+   root-relative зам, нийтийн header-ээс админ руу абсолют URL-аар шилжинэ.
+
+**Файлууд:** `src/lib/hosts.ts` (шинэ) · `src/middleware.ts` (host routing + `X-Robots-Tag` +
+`safeNextPath`) · `src/app/layout.tsx` (минимал болсон) · `src/app/(site)/layout.tsx` (шинэ) ·
+`src/app/(site)/{page,tenders,auth,dashboard,about,terms,privacy}` (шилжүүлсэн, URL ижил) ·
+`src/app/admin/{layout,login/page,security/page}.tsx` (шинэ) · `src/app/admin/(panel)/{layout,page}.tsx`
+(шинэ) · `src/lib/admin/require-admin.ts` (шинэ) · `src/components/admin/{AdminLoginForm,
+AdminLogoutButton,AdminMfaPanel}.tsx` (шинэ) · `src/app/robots.ts` (host мэдэрдэг) ·
+`src/lib/supabase/queries.ts` (`getHeaderUser` → `isAdmin`) · `src/components/layout/Header.tsx`
+(зөвхөн админд "Админ самбар") · `src/lib/i18n/mn.ts` (`admin` хэсэг) · `.env.example`, `README.md`.
+
+**Баталгаа (production build + бодит HTTP хүсэлт):** нийтийн host дээр `/`, `/tenders`, `/about`,
+`/terms`, `/privacy`, `/robots.txt`, `/auth/login` = **200**, `/admin`, `/admin/users` = **404**,
+`/dashboard` = **307 → /auth/login?next=...**; админ host дээр `/` ба `/security` = **307 → /login**
+(session-гүй үед), `/login` = **200**, `/about` `/dashboard` `/auth/login` `/admin` `/users` = **404**,
+бүх админ хариулт `x-robots-tag: noindex, nofollow` + `x-middleware-rewrite: /admin...`; админы
+`robots.txt` = `Disallow: /`, нийтийн нь хэвийн + `Sitemap`.
+
+**Хязгаарлалт:** админ нэвтрэлт/`/security`/header-ийн "Админ самбар" линкийг бодит админ
+хэрэглэгчгүйгээр шалгаагүй (DB дээр `is_admin = true` тавих шаардлагатай) — S1-ийн
+`verify-admin.mjs` ба S2-ын гараар хийх шалгалтаар нөхнө.
+
+## Админ самбар — S1 (DB давхарга + нууцлалын хатуужилт)
+
+**`db/admin.sql`-ийн аудит (spec-тэй тулгасан):** бүх зүйл аль хэдийн бэлэн байсан —
+`profiles.is_admin/status` + guard trigger, `audit_logs` (append-only триггер), `reports`
+(нэг хэрэглэгч = нэг нээлттэй гомдол), `site_settings` + `public_settings` view (whitelist),
+`categories` (8 угтвар), `announcements`, P1 унасан бодлогууд, `admin_proposals_meta`
+(price/text **байхгүй**), `admin_profiles_meta` (мэйл дарсан, утас **байхгүй**) + `mask_email`,
+`admin_reveal_email` (audit-тай), зогссон хэрэглэгчийн INSERT хориг, 8 RPC + `admin_stats()`.
+
+**Нэгэн зүйл дутуу байсныг олж зассан — aal2 шаардлага:** `public.is_admin()` зөвхөн флагийг
+шалгадаг байв. Одоо JWT-ийн `aal` claim бас шалгагдана: nuugt (password-only) session = aal1 →
+алдаатай. Үүний ачаар "MFA зөвхөн UI-д" биш, **мэдээллийн баазын түвшинд** хүчинтэй болно.
+
+**Шинээр нэмсэн (зассан):**
+1. `db/admin.sql` §2 — `is_admin()` дээр `request.jwt.claims ->> 'aal' = 'aal2'` шалгалт.
+2. `db/admin.sql` §15 — `site_settings` анхны утгууд (site_name, contact_email, maintenance_mode,
+   registration_open, assistant_enabled, telemetry_retention_days) — `on conflict do nothing`.
+3. `scripts/verify-admin.mjs` — **aal1 admin = эрхгүй** гэсэн 3 шинэ шалгалт + бодит MFA хуваалц
+   (enroll → чалленж → RFC 6238 TOTP код `node:crypto`-оор гараар үүсгэнэ, нэмэлт хамааралгүй) →
+   aal2 болсны дараа л бүх админ шалгалт явдаг болгосон. `scripts/_db.mjs` дээр
+   `connectionTimeoutMillis: 12s` + 6 retry (хуучин нь OS-ийн ~2 мин timeout дээр гацдаг байв).
+4. `src/lib/actions/auth.ts` — `site_settings.registration_open = false` үед бүртгэл **сервер дээр** хаагдана.
+5. `src/lib/actions/tenders.ts` + `src/lib/i18n/mn.ts` — зогссон хэрэглэгч тендер/санал илгээхэд
+   RLS-ийн түүхий алдаа биш монгол мэдэгдэл (`mn.errors.suspended`) гарна.
+6. `/about`, `/privacy` — оператор нууц мэдээлэл харж чадахгүй гэсэн мэдэгдэл (info тэмдэглээ) —
+   мөн `mn.static.adminNotice`.
+
+**Баталгаа (`node scripts/verify-admin.mjs`, бодит Supabase дээр):** **ALL ADMIN CHECKS PASSED**
+(40 PASS / 0 FAIL), т.х. `anon cannot read audit_logs`, `normal user cannot set own is_admin`,
+`normal user cannot call admin_stats`, `audit_logs UPDATE/DELETE blocked`,
+`aal1 admin cannot call admin_stats` (шинэ), `aal1 admin sees 0 rows in admin_profiles_meta`
+(шинэ), `admin session upgraded to aal2 (TOTP verified)` (шинэ), `admin reads 0 rows from
+tender_private_details / proposals(price,text) / notifications`, `tender-files signed URL denied`,
+`admin_proposals_meta columns = bidder_id, created_at, id, status, tender_id`, `emails masked
+(e.g. "b***@example.com")`, `admin_profiles_meta has no phone`, `reveal_email wrote an audit row`,
+`admin_stats OK (users=5, tenders=8, openReports=0)`, `admin_set_user_status suspends (DB reflects)`.
+
+**Нээлттэй асуудал (дараагийн удаа авна):
+- Supabase-ийн шууд холболтын IPv6 маршрут энэ session-д интермитенттээр тасарсан (дахин
+  холбогдож байна). `npm run db:apply` амжилттай явсан (§15 settings seed-ээс бусад),
+  гэхдээ `verify-admin.mjs`-ийн **fixture account-ууд цэвэрлэгдээгүй** (verify-admin-*@example.com,
+  is_admin=true). `tmp/finish-db.mjs` бичиж фонд руу тавьсан — сүлжээ эргэхэд 1) fixture-ийг
+  устгана, 2) `db:apply` дахин ажиллуулна. Сүлжээ эргээгүй бол гараар: `npm run db:apply` + тэдгээр
+  auth.users бүртгэлийг Supabase dashboard-оос устгана.
+- Админ UI дээр бодит админ хэрэглэгчээр нэвтэрч шалгаагүй (MFA нэмэлт шаардлагатай).
+
 ## Next
+
+**Next: S2** — `requireAdmin()`-ийг бүх admin page/action дээр хэрэглэх, админ сервер үйлдлүүд
+(RPC + audit + typed result + Mongolian Zod errors), re-auth modal, 5/мин rate limit,
+30 мин идэвхгүй хугацаа, last login харуулах.
+
+### Нийтийн UX-ийн үлдэгдэл (TASK 1, дараа нь)
 
 1. Chat widget (STEP 5) нэмбэл түүний гарчигт `Тендер байна` + `Logo`-г ашиглана,
 2. `apple-icon.png` + OG image (`opengraph-image`) брэнд тэмдгээр үүсгэх,

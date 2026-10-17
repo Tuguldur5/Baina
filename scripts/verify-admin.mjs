@@ -16,11 +16,19 @@
 //    10. admin_profiles_meta has NO phone column (email is masked)
 //    11. admin_reveal_email works AND writes an audit row
 //    12. normal user still cannot read audit_logs or call admin RPCs
+//    13. an aal1 admin session (password only, no MFA) has NO admin rights at
+//        all — `public.is_admin()` requires the JWT `aal` claim to be 'aal2' —
+//        and the same account gets full access after completing a real TOTP
+//        challenge (the script enrolls a factor and generates the code itself;
+//        RFC 6238 with node:crypto, no extra dependency).
 //
-// Creates (and removes) a dedicated admin account so the checks never depend
-// on the seeded demo users' ownership of rows.
+// Creates a dedicated admin account so the checks never depend on the seeded
+// demo users' ownership of rows, then ALWAYS removes it: cleanup runs in a
+// finally block (success, thrown error) and via SIGINT/SIGTERM handlers, uses
+// random per-run passwords, and the script ends by asserting that zero
+// verify-% fixture rows remain in the database.
 import { createClient } from '@supabase/supabase-js';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { readEnv, connect } from './_db.mjs';
 
 const env = readEnv();
@@ -44,10 +52,14 @@ const fail = (msg) => {
   failed = true;
 };
 
-const ADMIN_EMAIL = `verify-admin-${Date.now()}@example.com`;
-const ADMIN_PASSWORD = 'VerifyAdmin123!';
-const USER_EMAIL = `verify-normal-${Date.now()}@example.com`;
-const USER_PASSWORD = 'VerifyNormal123!';
+// Random per-run credentials: a leftover fixture must never be signable with
+// a known password (the old shared constants were a real risk if cleanup was
+// skipped while the direct DB route was flaky).
+const RUN_ID = `${Date.now()}-${process.pid}`;
+const ADMIN_EMAIL = `verify-admin-${RUN_ID}@example.com`;
+const ADMIN_PASSWORD = `VerifyAdmin-${randomBytes(12).toString('base64url')}`;
+const USER_EMAIL = `verify-normal-${RUN_ID}@example.com`;
+const USER_PASSWORD = `VerifyUser-${randomBytes(12).toString('base64url')}`;
 const ADMIN_ID = randomUUID();
 const USER_ID = randomUUID();
 
@@ -63,6 +75,54 @@ async function freshClient() {
   client = await connect();
   return client;
 }
+
+// ---------------------------------------------------------------------------
+// fixture cleanup: always runs (finally + signal handlers) and asserts that
+// no verify-% rows remain. Never prints credentials.
+// ---------------------------------------------------------------------------
+const MANUAL_CLEANUP_SQL =
+  "  update public.profiles set is_admin=false where email like 'verify-%';\n" +
+  "  delete from auth.users where email like 'verify-admin-%' or email like 'verify-normal-%';";
+
+let cleanupDone = false;
+async function removeFixtures() {
+  if (cleanupDone) return;
+  cleanupDone = true;
+  try {
+    const db = await freshClient();
+    await db.query(`update public.profiles set is_admin = false where email like 'verify-%'`);
+    await db.query(
+      `delete from auth.users where email like 'verify-admin-%' or email like 'verify-normal-%'`
+    );
+    const res = await db.query(
+      `select (select count(*)::int from auth.users where email like 'verify-%') as users, ` +
+        `(select count(*)::int from public.profiles where email like 'verify-%') as profiles`
+    );
+    await db.end();
+    const { users, profiles } = res.rows[0];
+    if (users === 0 && profiles === 0) {
+      console.log(`\nCLEANUP PASS: zero verify-% rows remain (users=${users}, profiles=${profiles})`);
+    } else {
+      console.error(`\nCLEANUP FAIL: verify-% rows remain (users=${users}, profiles=${profiles})`);
+      console.error('Run in the Supabase SQL Editor:\n' + MANUAL_CLEANUP_SQL);
+      failed = true;
+    }
+  } catch (error) {
+    console.error(`\nCLEANUP FAIL: ${error.message}`);
+    console.error('Run in the Supabase SQL Editor:\n' + MANUAL_CLEANUP_SQL);
+    failed = true;
+  }
+}
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, async () => {
+    console.log(`\n${signal} received — removing fixture accounts...`);
+    await removeFixtures();
+    process.exit(130);
+  });
+}
+
+try {
 
 // ---------------------------------------------------------------------------
 // fixture: one fresh admin + one fresh normal user (same pattern as seed.sql)
@@ -95,13 +155,90 @@ try {
   console.log(`FIXTURE: admin=${ADMIN_EMAIL} user=${USER_EMAIL}\n`);
 } catch (error) {
   console.error(`FIXTURE FAILED: ${error.message}`);
-  process.exit(1);
+  failed = true;
+  throw error; // the finally block below still removes any partial fixture
 }
 
 async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw new Error(`sign-in failed for ${email}: ${error.message}`);
   return data.user;
+}
+
+/** RFC 4648 base32 -> bytes (TOTP secrets are base32, unpadded). */
+function base32Decode(input) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const clean = String(input).replace(/=+$/, '').replace(/[\s-]/g, '').toUpperCase();
+  const bytes = [];
+  let buffer = 0;
+  let bitsLeft = 0;
+  for (const char of clean) {
+    const index = alphabet.indexOf(char);
+    if (index === -1) throw new Error(`invalid base32 character: ${char}`);
+    buffer = (buffer << 5) | index;
+    bitsLeft += 5;
+    if (bitsLeft >= 8) {
+      bytes.push((buffer >> (bitsLeft - 8)) & 0xff);
+      bitsLeft -= 8;
+    }
+  }
+  return Buffer.from(bytes);
+}
+
+/** RFC 6238 TOTP: SHA-1, 6 digits, 30 second step. */
+function totpCode(secret, at = Date.now()) {
+  const counter = Math.floor(at / 1000 / 30);
+  const message = Buffer.alloc(8);
+  message.writeUInt32BE(Math.floor(counter / 2 ** 32), 0);
+  message.writeUInt32BE(counter >>> 0, 4);
+
+  const digest = createHmac('sha1', base32Decode(secret)).update(message).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const binary =
+    ((digest[offset] & 0x7f) << 24) |
+    (digest[offset + 1] << 16) |
+    (digest[offset + 2] << 8) |
+    digest[offset + 3];
+
+  return String(binary % 1_000_000).padStart(6, '0');
+}
+
+/**
+ * Second factor for an already signed-in (aal1) session: enroll a TOTP factor,
+ * answer the challenge with a locally generated code and return the new level.
+ */
+async function upgradeToAal2() {
+  const { data: existing } = await supabase.auth.mfa.listFactors();
+  for (const factor of existing?.all ?? []) {
+    await supabase.auth.mfa.unenroll({ factorId: factor.id });
+  }
+
+  const { data: enrolled, error: enrollError } = await supabase.auth.mfa.enroll({
+    factorType: 'totp',
+    friendlyName: `verify-${Date.now()}`,
+  });
+  if (enrollError || !enrolled) {
+    throw new Error(`mfa.enroll -> ${enrollError?.message ?? 'no data'}`);
+  }
+
+  const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
+    factorId: enrolled.id,
+  });
+  if (challengeError || !challenge) {
+    throw new Error(`mfa.challenge -> ${challengeError?.message ?? 'no data'}`);
+  }
+
+  const { error: verifyError } = await supabase.auth.mfa.verify({
+    factorId: enrolled.id,
+    challengeId: challenge.id,
+    code: totpCode(enrolled.totp.secret),
+  });
+  if (verifyError) {
+    throw new Error(`mfa.verify -> ${verifyError.message}`);
+  }
+
+  const { data: level } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  return level?.currentLevel ?? 'unknown';
 }
 
 // ---------------------------------------------------------------------------
@@ -212,6 +349,31 @@ await signIn(USER_EMAIL, USER_PASSWORD);
 // admin session checks (PATCH P1)
 // ---------------------------------------------------------------------------
 await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
+
+// 13a. Password-only (aal1) admin session: the account HAS the flag but the
+//      session has no second factor, so every admin surface must stay shut.
+{
+  const { data: stats, error: statsError } = await supabase.rpc('admin_stats', {});
+  if (statsError) pass(`aal1 admin cannot call admin_stats -> ${statsError.message.slice(0, 60)}`);
+  else fail('aal1 admin COULD call admin_stats (is_admin() must require aal2)');
+
+  const { data: pmeta } = await supabase.from('admin_profiles_meta').select('id').limit(1);
+  if ((pmeta ?? []).length === 0) pass('aal1 admin sees 0 rows in admin_profiles_meta');
+  else fail(`aal1 admin read ${pmeta.length} row(s) from admin_profiles_meta`);
+
+  const { data: logs } = await supabase.from('audit_logs').select('id').limit(1);
+  if ((logs ?? []).length === 0) pass('aal1 admin sees 0 rows in audit_logs');
+  else fail(`aal1 admin read ${logs.length} audit row(s)`);
+}
+
+// 13b. Complete a real MFA challenge -> aal2 -> admin rights turn on.
+try {
+  const level = await upgradeToAal2();
+  if (level === 'aal2') pass('admin session upgraded to aal2 (TOTP verified)');
+  else fail(`session level after MFA = ${level}, expected aal2`);
+} catch (error) {
+  fail(`admin MFA upgrade failed -> ${error.message}`);
+}
 
 {
   // 5. confidential tender details
@@ -329,16 +491,9 @@ await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
   await supabase.auth.signOut();
 }
 
-// ---------------------------------------------------------------------------
-// cleanup
-// ---------------------------------------------------------------------------
-try {
-  const db = await freshClient();
-  await db.query(`delete from auth.users where email in ($1, $2)`, [ADMIN_EMAIL, USER_EMAIL]);
-  await db.end();
-  console.log('\nCLEANUP: removed verification accounts');
-} catch (error) {
-  console.log(`NOTE: cleanup skipped -> ${error.message}`);
+} finally {
+  // Success OR any failure above: never leave admin-flagged fixtures behind.
+  await removeFixtures();
 }
 
 console.log(failed ? '\nRESULT: FAIL' : '\nRESULT: ALL ADMIN CHECKS PASSED');

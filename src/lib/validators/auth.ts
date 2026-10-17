@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { mn } from '@/lib/i18n/mn';
-import { PASSWORD_MIN_LENGTH, USER_ROLES } from '@/lib/constants';
+import { PASSWORD_MIN_LENGTH, USER_INTENTS, USER_ROLES } from '@/lib/constants';
 
 /** Password: min 8 chars, must contain letters and numbers. */
 export const passwordSchema = z
@@ -45,6 +45,8 @@ export const registerSchema = z
       .optional(),
     email: emailSchema,
     phone: phoneSchema.optional(),
+    // What the account mainly wants to do — orders the dashboard UI only.
+    intent: z.enum(USER_INTENTS).optional().default('both'),
     password: passwordSchema,
     passwordConfirm: z.string().min(1, mn.validation.required),
   })
@@ -87,6 +89,12 @@ export const updatePasswordSchema = z
     }
   });
 export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
+
+export const updateProfileSchema = z.object({
+  intent: z.enum(USER_INTENTS).optional(),
+  companyName: z.string().trim().max(150, mn.validation.companyNameMax).optional(),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 /**
  * Internal redirect target (`?next=…`): only same-site paths are allowed so

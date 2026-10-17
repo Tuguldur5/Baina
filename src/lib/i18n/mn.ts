@@ -75,6 +75,7 @@ export const mn = {
     navMyTenders: 'Миний тендерүүд',
     navHow: 'Хэрхэн ажилладаг',
     navAbout: 'Бидний тухай',
+    navDashboard: 'Миний самбар',
     login: 'Нэвтрэх',
     register: 'Бүртгүүлэх',
     logout: 'Гарах',
@@ -93,6 +94,13 @@ export const mn = {
     closeMenu: 'Цэсийг хаах',
     menuLabel: 'Үндсэн цэс',
     userMenu: 'Хэрэглэгчийн цэс',
+    themeLabel: 'Харагдах байдал',
+    viewAllNotifications: 'Бүгдийг харах',
+    searchOpen: 'Хайлт нээх',
+    searchCommandTitle: 'Хайлт ба шилжилт',
+    searchCommandPlaceholder: 'Тендер, компани хайх эсвэл хуудас руу шилжих…',
+    searchCommandSubmit: 'Хайх',
+    searchCommandHint: '↑↓ сонгох · Enter нээх · Esc хаах',
   },
 
   hero: {
@@ -107,15 +115,7 @@ export const mn = {
     badgeCompany: 'Компани',
     searchLabel: 'Танд хэрэгтэй тендерийг тодорхойлно уу',
     searchPlaceholder: 'барилгын дотор засал 300сая...',
-    searchPlaceholderLatin: 'barilgiin dotor zasal 300 saya...',
     searchCta: 'Тендер хайх',
-    toggleCyrillic: 'Кирилл',
-    toggleLatin: 'Латин',
-    chips: [
-      { label: 'Барилга · Дотор засал', key: 'category', value: 'Барилга' },
-      { label: 'Төсөв ≥ 300 сая ₮', key: 'min', value: '300000000' },
-      { label: 'Нээлттэй боломж', key: 'status', value: 'open' },
-    ] as readonly { label: string; key: string; value: string }[],
     linkRow: 'Компаниараа худалдан авалт хийх байна уу?',
     companyLink: 'Компанийн тендерүүдийг үзэх',
   },
@@ -325,6 +325,11 @@ export const mn = {
     backToList: 'Тендерүүдийн жагсаалт руу буцах',
     propose: 'Санал илгээх',
     edit: 'Тендер засах',
+    editSuccess: 'Тендерийн мэдээллийг шинэчиллээ',
+    editOnlyOpen: 'Зөвхөн нээлттэй, хугацаа дуусаагүй тендерийг засах боломжтой',
+    editScopeLocked:
+      'Шалгарсан эсвэл ялагч санал ирсэн тул хамрах хүрээ, шаардлага, бүрдүүлэх баримт, үнэлгээний шалгуур болон хугацааг өөрчлөх боломжгүй',
+    scopeEditable: 'Хамрах хүрээ, шаардлага, хугацаа',
     close: 'Тендерийг хаах',
     closeConfirmTitle: 'Тендерийг хаах уу?',
     closeConfirmText:
@@ -476,6 +481,7 @@ export const mn = {
       registerLink: 'Бүртгүүлэх',
       invalid: 'Имэйл эсвэл нууц үг буруу байна',
       success: 'Амжилттай нэвтэрлээ',
+      notSignedIn: 'Эхлээд нэвтэрч орно уу',
     },
     register: {
       title: 'Бүртгүүлэх',
@@ -496,6 +502,16 @@ export const mn = {
       passwordStrength: 'Нууц үгийн баталгаа',
       passwordLevels: ['Маш сул', 'Сул', 'Дунд', 'Хүчтэй', 'Маш хүчтэй'],
       success: 'Бүртгэл амжилттай үүсэв. Нэвтэрч орно уу.',
+      // Onboarding intent — orders the dashboard UI only, never permissions.
+      intent: 'Та юу хийх вэ?',
+      intentHint:
+        'Энэ сонголт зөвхөн самбарын дарааллыг өөрчилнө — эрх хязгаарлахгүй.',
+      intentPost: 'Тендер зарлах',
+      intentPostDesc: 'Ажил, үйлчилгээний хэрэгцээгээ зарлаж санал хүлээн авна.',
+      intentBid: 'Санал илгээх',
+      intentBidDesc: 'Нээлттэй тендерүүдэд өрсөлдөж гүйцэтгэгч болно.',
+      intentBoth: 'Хоёулаа',
+      intentBothDesc: 'Тендер зарлаж, бусдын тендерт санал илгээнэ.',
     },
     forgot: {
       title: 'Нууц үг сэргээх',
@@ -700,6 +716,8 @@ export const mn = {
     notFoundResource: 'Мэдээлэл олдсонгүй',
     rateLimited: 'Хэт олон хүсэлт илгээгдлээ. Дахин оролдоно уу.',
     network: 'Сүлжээний алдаа гарлаа',
+    suspended: 'Таны бүртгэл түр хязгаарлагдсан байна',
+    registrationClosed: 'Шинэ бүртгэл түр хаагдсан байна',
   },
 
   toast: {
@@ -738,6 +756,22 @@ export const mn = {
     budgetPositive: 'Төсөв нь тэгээс их байх ёстой',
     budgetMax: 'Төсөв хэтэрхий их байна',
     deadlineFuture: 'Хугацаа ирээдүйн огноо байх ёстой',
+    summaryMax: 'Урилга/товч тайлбар хамгийн ихдээ 600 тэмдэгт байх ёстой',
+    scopeItemRequired: 'Хоосон заалт нэмэх боломжгүй',
+    scopeItemMax: 'Хамрах хүрээний заалт бүр 200 тэмдэгтээс хэтрэхгүй',
+    scopeItemsMax: 'Хамрах хүрээний заалт хамгийн ихдээ 15 байх ёстой',
+    requirementMax: 'Шаардлага бүр 200 тэмдэгтээс хэтрэхгүй',
+    requirementsMax: 'Шаардлагын заалт хамгийн ихдээ 15 байх ёстой',
+    documentMax: 'Баримтын нэр 200 тэмдэгтээс хэтрэхгүй',
+    documentsMax: 'Бүрдүүлэх баримт хамгийн ихдээ 12 байх ёстой',
+    criterionNameMax: 'Үнэлгээний шалгуурын нэр 80 тэмдэгтээс хэтрэхгүй',
+    criteriaMax: 'Үнэлгээний шалгуур хамгийн ихдээ 15 байх ёстой',
+    criterionWeightRange: 'Шалгуурын жин 1-100 хооронд байх ёстой',
+    criteriaWeightSum: 'Үнэлгээний шалгуурын жингийн нийт дүн 100 байх ёстой',
+    localPreferenceMax: 'Нутгийн давуу тал 200 тэмдэгтээс хэтрэхгүй',
+    contractDurationMax: 'Гэрээний хугацаа 80 тэмдэгтээс хэтрэхгүй',
+    qaDeadlinePast: 'Асуулт хүлээн авах хугацаа санал хүлээн авахаас өмнө дуусах ёстой',
+    awardDateAfterDeadline: 'Ялагч тодорхойлох огноо санал хүлээн авах хугацаанаас хойш байх ёстой',
     pricePositive: 'Үнийн санал нь тэгээс их байх ёстой',
     durationPositive: 'Гүйцэтгэх хугацааг бүхэл өдрөөр оруулна уу',
     durationMax: 'Гүйцэтгэх хугацаа 3650 хоногоос ихгүй байх ёстой',
@@ -753,6 +787,10 @@ export const mn = {
   },
 
   static: {
+    // Operator-access statement shown on /about and /privacy. The guarantee is
+    // enforced by RLS (db/admin.sql + db/rls.sql), not by the UI.
+    adminNotice:
+      'Платформын оператор хэрэглэгчдийн нууц мэдээлэл (саналын үнэ, ажлын төлөвлөгөө, хавсралт) болон хувийн холбоо барих мэдээллийг үзэх боломжгүй. Энэ хязгаарлалт нь зөвхөн интерфэйс дээр бус, мэдээллийн сангийн түвшинд (Row Level Security) хэрэгжинэ.',
     about: {
       title: 'Бидний тухай',
       lead: 'Тендер байна нь Монголын хувь хүн, компаниудыг шударга байдлаар холбох тендерийн платформ юм.',
@@ -835,6 +873,269 @@ export const mn = {
     terms: { title: 'Хэрэглэх нөхцөл', description: 'Платформыг хэрэглэх нөхцөл.' },
     privacy: { title: 'Нууцлалын бодлого', description: 'Нууцлалын бодлого.' },
     notFound: { title: 'Хуудас олдсонгүй', description: 'Хуудас олдсонгүй.' },
+  },
+
+  /*
+   * Admin panel (admin host only). Every string here is rendered inside
+   * src/app/admin/* and src/components/admin/*. The panel is LIGHT-only.
+   */
+  admin: {
+    title: 'Админ самбар',
+    subtitle: 'Тендер байна — удирдлагын хэсэг',
+    badge: 'Админ',
+    backToSite: 'Сайт руу буцах',
+    noAccess: 'Энэ хэсэгт хандах эрх байхгүй',
+
+    /* Sidebar section labels */
+    sectionPlatform: 'ТЕНДЕР ПЛАТФОРМ',
+    sectionSystem: 'СИСТЕМ',
+
+    /* Icon rail */
+    rail: {
+      dashboard: 'Хянах самбар',
+      tenders: 'Тендер',
+      users: 'Хэрэглэгч',
+      moderation: 'Хяналт',
+      comms: 'Харилцаа',
+      system: 'Систем',
+      settings: 'Тохиргоо',
+      collapseSidebar: 'Хажуу цэс хумих',
+      expandSidebar: 'Хажуу цэс дэлгэх',
+      toggleRightPanel: 'Хажуу панель',
+      openMenu: 'Цэс нээх',
+      closeMenu: 'Цэс хаах',
+      accountMenu: 'Хэрэглэгчийн цэс',
+    },
+
+    /* Sidebar / navigation tree */
+    nav: {
+      overview: 'Хянах самбар',
+      tenders: 'Тендер',
+      tendersAll: 'Бүх тендер',
+      proposals: 'Саналууд',
+      categories: 'Ангилал',
+      users: 'Хэрэглэгч',
+      usersAll: 'Бүх хэрэглэгч',
+      companies: 'Компаниуд',
+      admins: 'Админууд',
+      moderation: 'Хяналт',
+      reports: 'Гомдол',
+      auditLog: 'Аудит лог',
+      comms: 'Харилцаа',
+      broadcast: 'Мэдэгдэл илгээх',
+      announcements: 'Зарлал',
+      chatbot: 'Чатбот',
+      system: 'Систем',
+      errors: 'Алдаа',
+      performance: 'Гүйцэтгэл',
+      analytics: 'Шинжилгээ',
+      health: 'Эрүүл мэнд',
+      settings: 'Тохиргоо',
+      general: 'Ерөнхий',
+      mode: 'Горим',
+      security: 'Миний аюулгүй байдал (MFA)',
+    },
+
+    /* Sidebar chrome */
+    sidebar: {
+      search: 'Хайлт',
+      adminCardMfa: 'MFA идэвхтэй',
+      adminCardLastLogin: 'Сүүлд нэвтэрсэн',
+      never: 'Мэдээлэл байхгүй',
+    },
+
+    /* Top bar + page tabs */
+    tabs: {
+      pinned: 'Хянах самбар',
+      close: 'Табыг хаах',
+      open: 'Хуудас нээх',
+      list: 'Нээлттэй хуудсууд',
+    },
+
+    /* Right activity panel */
+    activity: {
+      title: 'Сүүлийн үйл ажиллагаа',
+      empty: 'Одоогоор үйл ажиллагаа бүртгэгдээгүй',
+      viewAll: 'Бүгдийг харах',
+    },
+
+    /* Shared page chrome */
+    page: {
+      home: 'Хянах самбар',
+      emptyTitle: 'Мэдээлэл байхгүй',
+      emptyText: 'Энэ хэсэгт одоогоор харуулах өгөгдөл алга.',
+      notBuiltTitle: 'Энэ хэсэг хараахан бүтээгдээгүй',
+      notBuiltText:
+        'Хуудасны бүтэц, эрх, холбоос бэлэн боловч агуулга нь дараагийн шатанд нэмэгдэнэ.',
+    },
+
+    /*
+     * List pages (users / companies / tenders / reports / audit log). Column
+     * headers live here so every table reads the same vocabulary.
+     */
+    list: {
+      filterLabel: 'Шүүлт',
+      filterAll: 'Бүгд',
+      filterUsers: 'Хувь хүн',
+      filterCompanies: 'Компани',
+      filterAdmins: 'Админ',
+      profileStatusActive: 'Идэвхтэй',
+      profileStatusSuspended: 'Түдгэлзүүлсэн',
+      colName: 'Нэр',
+      colEmail: 'Имэйл',
+      colRole: 'Төрөл',
+      colStatus: 'Төлөв',
+      colJoined: 'Бүртгэгдсэн',
+      colTenders: 'Тендер',
+      colProposals: 'Санал',
+      colCompany: 'Компани',
+      colAdmin: 'Админ',
+      colTitle: 'Гарчиг',
+      colCategory: 'Ангилал',
+      colBudget: 'Төсөв',
+      colRegion: 'Бүс нутаг',
+      colDeadline: 'Хугацаа',
+      colObject: 'Объект',
+      colReason: 'Шалтгаан',
+      colDetails: 'Тайлбар',
+      colAction: 'Үйлдэл',
+      colCreated: 'Огноо',
+      colActor: 'Админ',
+      yes: 'Тийм',
+      no: 'Үгүй',
+      entityTender: 'Тендер',
+      entityUser: 'Хэрэглэгч',
+      entityProposal: 'Санал',
+      reportStatusOpen: 'Нээлттэй',
+      reportStatusReviewing: 'Хянаж байна',
+      reportStatusResolved: 'Шийдвэрлэсэн',
+      reportStatusDismissed: 'Татгалзсан',
+      subtitleUsers: 'Бүртгэлтэй хэрэглэгч, компани болон админууд.',
+      subtitleCompanies: 'Зөвхөн компани төрлөөр бүртгэгдсэн хэрэглэгчид.',
+      subtitleTenders: 'Платформ дээрх бүх тендер (сүүлийн 50).',
+      subtitleReports: 'Хэрэглэгчдийн илгээсэн гомдол, хяналтын дараалал.',
+      subtitleAudit: 'Админуудын бүртгэгдсэн үйлдэл (сүүлийн 50).',
+      emptyUsers: 'Нийцэх хэрэглэгч алга',
+      emptyTenders: 'Тендер бүртгэгдээгүй байна',
+      emptyReports: 'Ирсэн гомдол алга',
+      emptyAudit: 'Аудит бүртгэл хоосон байна',
+      maskNote:
+        'Имэйлийг маскласан байдлаар харуулна. Бүтэн хаягийг зөвхөн аудит бүртгэлд тэмдэглэгддэг тусдаа үйлдлээр нээх боломжтой.',
+      auditCodesNote:
+        'Үйлдэл ба объектын нэр нь системийн код (жишээ нь user.status).',
+      limitNote: (count: number) => `Сүүлийн ${count} бичлэг`,
+      rowCount: (count: number) => `${count} бичлэг`,
+    },
+
+    /* Overview / home */
+    overview: {
+      greeting: 'Сайн байна уу',
+      intro: 'Платформын өнөөдрийн байдлын тойм.',
+      bannerTitle: 'Анхаарал шаардсан зүйл',
+      bannerAllClear: 'Бүх зүйл хэвийн',
+      bannerLink: 'Шалгах',
+      bannerReports: 'нээлттэй гомдол',
+      bannerErrors: 'шинэ алдаа',
+      bannerSuspended: 'түдгэлзүүлсэн хэрэглэгч',
+      composerPlaceholder: 'Хайх, шилжих эсвэл / дарж үйлдэл сонгох…',
+      composerRange: 'Хугацаа',
+      composerScope: 'Хамрах хүрээ',
+      composerSend: 'Илгээх',
+      composerAdd: 'Нэмэх',
+      composerNoResults: 'Илэрц олдсонгүй',
+      composerPages: 'Хуудсууд',
+      composerActions: 'Үйлдлүүд',
+      composerTenders: 'Тендерүүд',
+      composerUsers: 'Хэрэглэгчид',
+      range30: 'Сүүлийн 30 хоног',
+      range90: 'Сүүлийн 90 хоног',
+      range365: 'Сүүлийн 1 жил',
+      scopeAll: 'Бүгд',
+      scopeTenders: 'Тендер',
+      scopeUsers: 'Хэрэглэгч',
+      scopeReports: 'Гомдол',
+      kpiUsers: 'Хэрэглэгч',
+      kpiActiveTenders: 'Идэвхтэй тендер',
+      kpiProposals: 'Санал',
+      kpiOpenReports: 'Нээлттэй гомдол',
+      kpiOpenBudget: 'Нээлттэй төсөв',
+      chartRegistrations: 'Шинэ бүртгэл ба тендер',
+      chartRegistrationsHint: 'Хугацаан дахь шинэ хэрэглэгч болон тендерийн тоо',
+      summaryTitle: 'Төлөвийн хураангуй',
+      summaryAwarded: 'Шалгаруулсан тендер',
+      donutTitle: 'Хэрэглэгчийн төрөл',
+      donutIndividual: 'Хувь хүн',
+      donutCompany: 'Компани',
+      barTitle: 'Ангиллаар тендер',
+      queueTitle: 'Хийх зүйлс',
+      queueEmpty: 'Хийх зүйл байхгүй',
+      trendUp: 'өссөн',
+      trendDown: 'буурсан',
+      trendFlat: 'өөрчлөлтгүй',
+    },
+
+    /* Login + MFA */
+    login: {
+      title: 'Нэвтрэх',
+      subtitle: 'Зөвхөн эрх бүхий ажилтанд зориулагдсан',
+      email: 'Имэйл',
+      emailPlaceholder: 'admin@baina.mn',
+      password: 'Нууц үг',
+      showPassword: 'Нууц үг харуулах',
+      hidePassword: 'Нууц үг нуух',
+      capsLock: 'Caps Lock асаалттай байна',
+      submit: 'Нэвтрэх',
+      submitting: 'Нэвтэрч байна…',
+      invalid: 'Имэйл эсвэл нууц үг буруу байна',
+      rateLimited: 'Хэт олон оролдлого. {seconds} секундын дараа дахин оролдоно уу',
+      mfaTitle: 'Хоёр шатлалт баталгаажуулалт',
+      mfaHint: 'Authenticator апп дээрх 6 оронтой кодыг оруулна уу',
+      mfaCode: 'Баталгаажуулах код',
+      mfaSubmit: 'Баталгаажуулах',
+      mfaInvalid: 'Код буруу байна. Дахин оролдоно уу',
+      enrollRequired:
+        'Энэ бүртгэлд хоёр шатлалт баталгаажуулалт тохируулаагүй байна. Эхлээд authenticator аппаа холбоно уу.',
+      logout: 'Гарах',
+      step1: 'Нэвтрэх',
+      step2: 'Баталгаажуулах',
+      footerNote: 'Зөвхөн эрх бүхий ажилтанд зориулагдсан',
+      backToSite: 'Сайт руу буцах',
+    },
+
+    /* OTP input component */
+    otp: {
+      label: '6 оронтой код',
+      digitLabel: '{index} дахь орон',
+      verifying: 'Шалгаж байна…',
+      success: 'Баталгаажлаа',
+      error: 'Код буруу байна. Дахин оролдоно уу',
+      locked: 'Хэт олон оролдлого. {seconds} секундын дараа дахин оролдоно уу',
+      expiredTitle: 'Сесс дууссан',
+      expiredText: 'Аюулгүй байдлын үүднээс сессийг хаалаа. Дахин нэвтэрнэ үү.',
+      expiredCta: 'Дахин нэвтрэх',
+      helpTitle: 'Код ирэхгүй байна уу?',
+      helpTime: 'Утасныхаа цагийг автоматаар тохируулсан эсэхийг шалгана уу.',
+      helpBackup: 'Нөөц төхөөрөмжөөрөө оролдоно уу.',
+      helpContact: 'Болохгүй бол системийн эзэнд хандана уу.',
+    },
+
+    /* Security (MFA enrollment) page */
+    security: {
+      title: 'Миний аюулгүй байдал',
+      subtitle: 'Хоёр шатлалт баталгаажуулалт (TOTP)',
+      statusVerified: 'Хоёр шатлалт баталгаажуулалт идэвхтэй',
+      statusMissing: 'Хоёр шатлалт баталгаажуулалт тохируулаагүй байна',
+      start: 'Эхлүүлэх',
+      scanHint:
+        'Authenticator аппаараа QR кодыг уншуулна уу (Google Authenticator, Authy, 1Password)',
+      manualHint: 'Эсвэл энэ түлхүүрийг гараар оруулна уу:',
+      codeLabel: 'Апп дээрх 6 оронтой код',
+      confirm: 'Баталгаажуулах',
+      restart: 'QR-ыг дахин үүсгэх',
+      continueToPanel: 'Самбар руу үргэлжлүүлэх',
+      genericError: 'Алдаа гарлаа. Дахин оролдоно уу',
+      invalid: 'Код буруу байна. Дахин оролдоно уу',
+    },
   },
 } as const;
 

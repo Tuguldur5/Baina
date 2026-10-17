@@ -68,6 +68,170 @@ end
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Structured PUBLIC (stage-1) fields — real big-buyer notices (Oyu Tolgoi EOI
+-- style) are short but STRUCTURED: intro, scope bullets, requirements, papers
+-- to submit, evaluation criteria, timeline. A tender may now carry that shape.
+--
+-- EVERYTHING added here is readable by anyone (it flows through the
+-- public_tenders view). Confidential material (full spec, BOQ, exact address,
+-- contact, attachments) stays in tender_private_details — see rls.sql.
+-- `has_attachments` only says WHETHER private files exist, never their names.
+-- ---------------------------------------------------------------------------
+alter table public.tenders add column if not exists tender_type text not null default 'tender';
+alter table public.tenders add column if not exists summary text;
+alter table public.tenders add column if not exists scope_items jsonb not null default '[]';
+alter table public.tenders add column if not exists requirements jsonb not null default '[]';
+alter table public.tenders add column if not exists required_documents jsonb not null default '[]';
+alter table public.tenders add column if not exists evaluation_criteria jsonb not null default '[]';
+alter table public.tenders add column if not exists local_preference text;
+alter table public.tenders add column if not exists submission_language text not null default 'mn';
+alter table public.tenders add column if not exists contract_duration text;
+alter table public.tenders add column if not exists qa_deadline timestamptz;
+alter table public.tenders add column if not exists expected_award_date date;
+alter table public.tenders add column if not exists has_attachments boolean not null default false;
+
+comment on column public.tenders.tender_type is 'eoi = Сонирхол илэрхийлэх урьдчилсан шат; tender = Үнийн санал авах';
+comment on column public.tenders.has_attachments is 'Only WHETHER confidential files exist (set by the server) — names stay in tender_private_details';
+
+create index if not exists tenders_tender_type_idx on public.tenders (tender_type);
+
+-- ---------------------------------------------------------------------------
+-- Validation helpers for the jsonb columns above. Marked IMMUTABLE because
+-- PostgreSQL requires that of functions used in CHECK constraints; they only
+-- inspect their argument, never the clock or the database.
+-- ---------------------------------------------------------------------------
+create or replace function public.tenders_str_array_ok(p jsonb, p_max_items int, p_max_len int)
+returns boolean
+language plpgsql
+immutable
+set search_path = public
+as $$
+declare
+  v_item jsonb;
+begin
+  if p is null or jsonb_typeof(p) = 'null' then return true; end if;
+  if jsonb_typeof(p) <> 'array' then return false; end if;
+  if jsonb_array_length(p) > p_max_items then return false; end if;
+  for v_item in select * from jsonb_array_elements(p) loop
+    if jsonb_typeof(v_item) <> 'string' then return false; end if;
+    if char_length(v_item #>> '{}') > p_max_len then return false; end if;
+  end loop;
+  return true;
+end
+$$;
+
+create or replace function public.tenders_requirements_ok(p jsonb)
+returns boolean
+language plpgsql
+immutable
+set search_path = public
+as $$
+declare
+  v_item jsonb;
+  v_text text;
+begin
+  if p is null or jsonb_typeof(p) = 'null' then return true; end if;
+  if jsonb_typeof(p) <> 'array' then return false; end if;
+  if jsonb_array_length(p) > 15 then return false; end if;
+  for v_item in select * from jsonb_array_elements(p) loop
+    if jsonb_typeof(v_item) <> 'object' then return false; end if;
+    v_text := trim(coalesce(v_item ->> 'text', ''));
+    if v_text = '' or char_length(v_text) > 200 then return false; end if;
+    if v_item ? 'mandatory' and jsonb_typeof(v_item -> 'mandatory') <> 'boolean' then
+      return false;
+    end if;
+  end loop;
+  return true;
+end
+$$;
+
+-- Evaluation criteria: {name, weight} pairs whose weights add up to exactly
+-- 100 (the Zod validator enforces the same rule on the way in).
+create or replace function public.tenders_evaluation_ok(p jsonb)
+returns boolean
+language plpgsql
+immutable
+set search_path = public
+as $$
+declare
+  v_item jsonb;
+  v_name text;
+  v_weight text;
+  v_sum int := 0;
+begin
+  if p is null or jsonb_typeof(p) = 'null' then return true; end if;
+  if jsonb_typeof(p) <> 'array' then return false; end if;
+  if jsonb_array_length(p) = 0 then return true; end if;
+  for v_item in select * from jsonb_array_elements(p) loop
+    if jsonb_typeof(v_item) <> 'object' then return false; end if;
+    v_name := trim(coalesce(v_item ->> 'name', ''));
+    if v_name = '' or char_length(v_name) > 80 then return false; end if;
+    v_weight := v_item ->> 'weight';
+    if v_weight is null or v_weight !~ '^[0-9]+$' then return false; end if;
+    if v_weight::int < 1 or v_weight::int > 100 then return false; end if;
+    v_sum := v_sum + v_weight::int;
+  end loop;
+  return v_sum = 100;
+end
+$$;
+
+-- Constraints are dropped and re-added so an ALREADY DEPLOYED database
+-- converges on the same rules as a fresh one (same trick as the description
+-- cap above).
+do $$
+begin
+  alter table public.tenders drop constraint if exists tenders_tender_type_check;
+  alter table public.tenders add constraint tenders_tender_type_check
+    check (tender_type in ('eoi', 'tender'));
+
+  alter table public.tenders drop constraint if exists tenders_submission_language_check;
+  alter table public.tenders add constraint tenders_submission_language_check
+    check (submission_language in ('mn', 'en', 'both'));
+
+  alter table public.tenders drop constraint if exists tenders_summary_len_check;
+  alter table public.tenders add constraint tenders_summary_len_check
+    check (summary is null or char_length(summary) <= 600);
+
+  alter table public.tenders drop constraint if exists tenders_scope_items_check;
+  alter table public.tenders add constraint tenders_scope_items_check
+    check (public.tenders_str_array_ok(scope_items, 15, 200));
+
+  alter table public.tenders drop constraint if exists tenders_required_documents_check;
+  alter table public.tenders add constraint tenders_required_documents_check
+    check (public.tenders_str_array_ok(required_documents, 12, 200));
+
+  alter table public.tenders drop constraint if exists tenders_requirements_check;
+  alter table public.tenders add constraint tenders_requirements_check
+    check (public.tenders_requirements_ok(requirements));
+
+  alter table public.tenders drop constraint if exists tenders_evaluation_criteria_check;
+  alter table public.tenders add constraint tenders_evaluation_criteria_check
+    check (public.tenders_evaluation_ok(evaluation_criteria));
+
+  alter table public.tenders drop constraint if exists tenders_local_preference_len_check;
+  alter table public.tenders add constraint tenders_local_preference_len_check
+    check (local_preference is null or char_length(local_preference) <= 200);
+
+  alter table public.tenders drop constraint if exists tenders_contract_duration_len_check;
+  alter table public.tenders add constraint tenders_contract_duration_len_check
+    check (contract_duration is null or char_length(contract_duration) <= 80);
+end
+$$;
+
+-- Backfill: rows seeded before `has_attachments` existed. The server keeps the
+-- flag in sync from here on (createTender/updateTender).
+update public.tenders t
+   set has_attachments = true
+ where not t.has_attachments
+   and exists (
+     select 1 from public.tender_private_details d
+      where d.tender_id = t.id
+        and d.attachments is not null
+        and jsonb_typeof(d.attachments) = 'array'
+        and jsonb_array_length(d.attachments) > 0
+   );
+
+-- ---------------------------------------------------------------------------
 -- tender_private_details — STAGE 2 (confidential). Only the tender owner and
 -- shortlisted/accepted bidders may read it. Enforced by RLS (see rls.sql).
 -- ---------------------------------------------------------------------------
@@ -347,6 +511,18 @@ select t.id,
        t.created_by_user_id,
        t.winner_proposal_id,
        t.created_at,
+       t.tender_type,
+       t.summary,
+       t.scope_items,
+       t.requirements,
+       t.required_documents,
+       t.evaluation_criteria,
+       t.local_preference,
+       t.submission_language,
+       t.contract_duration,
+       t.qa_deadline,
+       t.expected_award_date,
+       t.has_attachments,
        coalesce(p.role, 'user') as owner_role,
        public.mask_owner_name(p.name, p.company_name, coalesce(p.role, 'user')) as owner_masked_name,
        coalesce(p.avatar_url, '') as owner_avatar_url,
@@ -566,3 +742,94 @@ $$;
 grant execute on function public.shortlist_proposal(uuid) to authenticated;
 grant execute on function public.award_proposal(uuid) to authenticated;
 grant execute on function public.close_expired_tenders() to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- PHASE 2: onboarding intent, saved tenders (bookmarks), public company fields
+-- All statements are idempotent — re-running db:apply is safe.
+-- ---------------------------------------------------------------------------
+
+-- profiles.intent: 'post' | 'bid' | 'both'. Orders the dashboard UI and CTAs
+-- ONLY — it never restricts permissions (a 'bid' user can still post).
+alter table public.profiles
+  add column if not exists intent text not null default 'both';
+
+do $$
+begin
+  alter table public.profiles drop constraint if exists profiles_intent_check;
+  alter table public.profiles
+    add constraint profiles_intent_check check (intent in ('post', 'bid', 'both'));
+end $$;
+
+-- Optional public company-profile fields (shown on the company directory).
+alter table public.profiles
+  add column if not exists registry_no text,
+  add column if not exists address text,
+  add column if not exists website text,
+  add column if not exists description text;
+
+-- Signup: map the optional `intent` from auth metadata (invalid -> 'both').
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, name, role, company_name, intent)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data ->> 'name', split_part(coalesce(new.email, ''), '@', 1)),
+    coalesce(new.raw_user_meta_data ->> 'role', 'user'),
+    new.raw_user_meta_data ->> 'company_name',
+    case when new.raw_user_meta_data ->> 'intent' in ('post', 'bid', 'both')
+         then new.raw_user_meta_data ->> 'intent'
+         else 'both' end
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+-- Bookmarks: which tenders a user saved. Own-only through RLS (rls.sql).
+create table if not exists public.saved_tenders (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  tender_id uuid not null references public.tenders (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, tender_id)
+);
+
+create index if not exists saved_tenders_user_idx
+  on public.saved_tenders (user_id, created_at desc);
+
+alter table public.saved_tenders enable row level security;
+
+comment on table public.saved_tenders is 'Bookmarked tenders (user_id, tender_id); own-only via RLS';
+
+-- Public company directory: a SAFE projection of company profiles. Only the
+-- company's own display fields travel out — never the registrant's personal
+-- name, never a raw email/phone (email is masked in SQL). This view must stay
+-- a column whitelist; profiles itself is NOT world-readable.
+drop view if exists public.public_companies;
+create view public.public_companies as
+select
+  p.id,
+  p.company_name,
+  p.avatar_url,
+  p.description,
+  p.website,
+  case
+    when p.email is null or position('@' in p.email) < 2 then null
+    else left(p.email, 1) || '***@' || split_part(p.email, '@', 2)
+  end as email_masked,
+  p.created_at,
+  (select count(*) from public.tenders t
+     where t.created_by_user_id = p.id and t.status = 'open')::int as open_tenders,
+  (select count(*) from public.tenders t
+     where t.created_by_user_id = p.id)::int as total_tenders
+from public.profiles p
+where p.role = 'company'
+  and p.status = 'active'
+  and p.company_name is not null;
+
+grant select on public.public_companies to anon, authenticated;

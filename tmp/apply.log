@@ -1,0 +1,173 @@
+=== round 1 16:55:14 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/apply-sql.mjs:14:16
+
+Node.js v20.18.0
+round 1 failed, waiting 60s
+=== round 2 16:59:03 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/apply-sql.mjs:14:16
+
+Node.js v20.18.0
+round 2 failed, waiting 60s
+=== round 3 17:02:50 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/apply-sql.mjs:14:16
+
+Node.js v20.18.0
+round 3 failed, waiting 60s
+=== round 4 17:06:38 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/apply-sql.mjs:14:16
+
+Node.js v20.18.0
+round 4 failed, waiting 60s
+=== round 5 17:10:26 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/apply-sql.mjs:14:16
+
+Node.js v20.18.0
+round 5 failed, waiting 60s
+=== round 6 17:14:14 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/apply-sql.mjs:14:16
+
+Node.js v20.18.0
+round 6 failed, waiting 60s
+=== round 7 17:18:02 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/apply-sql.mjs:14:16
+
+Node.js v20.18.0
+round 7 failed, waiting 60s
+=== round 8 17:21:50 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/apply-sql.mjs:14:16
+
+Node.js v20.18.0
+round 8 failed, waiting 60s
+=== round 9 17:25:38 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
+        ^
+
+Error: Could not connect to Postgres after 6 attempts: timeout expired
+Hint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.
+    at connect (file:///C:/Users/Lenovo/Desktop/tender/scripts/_db.mjs:141:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///C:/Users/Lenovo/Desktop/tender/scripts/apply-sql.mjs:14:16
+
+Node.js v20.18.0
+round 9 failed, waiting 60s
+=== round 10 17:29:26 ===
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+Connected via DATABASE_URL (direct) (attempt 5)
+Connected to Postgres.
+Applying db/schema.sql ...
+  OK: db/schema.sql
+Applying db/rls.sql ...
+  OK: db/rls.sql
+Applying db/seed.sql ...
+  OK: db/seed.sql
+Applying db/storage.sql ...
+  OK: db/storage.sql
+Applying db/admin.sql ...
+  OK: db/admin.sql
+
+All SQL applied successfully.
+APPLY_OK round 10

@@ -12,7 +12,11 @@
     "db:apply": "node scripts/apply-sql.mjs",
     "db:anon-key": "node scripts/get-anon-key.mjs",
     "db:verify": "node scripts/verify-db.mjs",
-    "db:verify-rls": "node scripts/verify-rls.mjs"
+    "db:verify-rls": "node scripts/verify-rls.mjs",
+    "admin:make": "node scripts/make-admin.mjs",
+    "admin:list": "node scripts/list-admins.mjs",
+    "admin:cleanup": "node scripts/cleanup-fixtures.mjs",
+    "admin:verify": "node scripts/verify-admin.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

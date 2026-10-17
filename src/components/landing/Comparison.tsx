@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Check, User, Building2 } from 'lucide-react';
 import { staggerContainer, fadeInUp, scrollReveal } from '@/lib/animations';
+import { Container } from '@/components/layout/Container';
 import { mn } from '@/lib/i18n/mn';
 
 /** "Хувь хүн / Компани" benefit comparison. */
@@ -24,20 +25,23 @@ export function Comparison() {
 
   return (
     <section className="border-y border-border bg-surface-2/50 py-16">
-      <motion.div {...scrollReveal} className="mx-auto max-w-6xl px-4 text-center">
-        <h2 className="text-2xl font-bold text-text sm:text-3xl">
-          {mn.landing.compare.title}
-        </h2>
-        <p className="mt-3 text-muted">{mn.landing.compare.subtitle}</p>
+      <motion.div {...scrollReveal} className="text-center">
+        <Container>
+          <h2 className="text-2xl font-bold text-text sm:text-3xl">
+            {mn.landing.compare.title}
+          </h2>
+          <p className="mt-3 text-muted">{mn.landing.compare.subtitle}</p>
+        </Container>
       </motion.div>
 
-      <motion.div
-        variants={staggerContainer}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        className="mx-auto mt-12 grid max-w-6xl grid-cols-1 gap-6 px-4 md:grid-cols-2"
-      >
+      <Container className="mt-12">
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          className="grid grid-cols-1 gap-6 md:grid-cols-2"
+        >
         {columns.map((column) => (
           <motion.div key={column.title} variants={fadeInUp}>
             <div className="card h-full p-8">
@@ -61,8 +65,8 @@ export function Comparison() {
               </ul>
             </div>
           </motion.div>
-        ))}
-      </motion.div>
+        ))}        </motion.div>
+      </Container>
     </section>
   );
 }

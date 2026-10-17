@@ -39,6 +39,8 @@
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon public key |
    | `NEXT_PUBLIC_SITE_URL` | Сайтын үндсэн URL (SEO/sitemap) |
    | `NEXT_PUBLIC_ALLOWED_ORIGINS` | API CORS зөвшөөрөгдсөн origin-ууд |
+   | `NEXT_PUBLIC_ROOT_DOMAIN` | Нийтийн сайтын домэйн (`baina.mn`) |
+   | `NEXT_PUBLIC_ADMIN_HOST` | Админ самбарын дэд домэйн (`admin.baina.mn`) |
 
    > Зөвхөн `NEXT_PUBLIC_*` хувьсагчид клиент рүү илчлэгдэнэ. Серверийн нууц түлхүүрүүдийг (`SUPABASE_SERVICE_ROLE_KEY` гэх мэт) хэзээ ч `NEXT_PUBLIC_` тавихгүй.
 
@@ -134,6 +136,150 @@
 ├── .env.example
 └── README.md
 ```
+
+## Админ самбар (subdomain: `admin.baina.mn`)
+
+Нэг repo, нэг deploy — хоёр host:
+
+| Host | Юу үзүүлэх вэ | Кодын байршил |
+| --- | --- | --- |
+| `baina.mn` (нийтийн) | Нийтийн сайт: header, footer, туслах, тендерүүд, `/dashboard` | `src/app/(site)/*` |
+| `admin.baina.mn` (админ) | Админ самбар (өөрийн shell, өөрийн session) | `src/app/admin/*` |
+
+**Локал дээр:** `npm run dev` нэг процесс дээр хоёуланг нь үзүүлнэ —
+нийтийн сайт `http://localhost:3000`, админ самбар `http://admin.localhost:3000`.
+(`*.localhost` нь үргэлж 127.0.0.1 рүү заадаг тул нэмэлт тохиргоо шаардлагагүй.)
+
+**Routing (код дотор):** `src/middleware.ts` нь host-оор шийднэ: админ host дээр `/` →
+`/admin`, `/x` → `/admin/x` (хөтчийн хаяг дээр `/admin` угтвар ХАРАГДАХГҮЙ); нийтийн host
+дээр `/admin` бүхэлдээ 404. Хэрэглэгчийн мэдэх шаардлагагүй дэд бүтэц (`/_next`, telemetry API,
+админы `robots.txt`)-ээс бусад бүх зам админ host дээр угтваргүй ажиллана. Бүх админ хариулт
+`X-Robots-Tag: noindex, nofollow` толгойтой, админы `robots.txt` нь `Disallow: /`.
+
+**Session тусдаа (зориуд):** Supabase-ийн auth cookie нь зөвхөн тухайн host-д хүчинтэй
+(`@supabase/ssr`-ийн бүх helper дээр `domain` тавихгүй). Тиймээс нийтийн сайтад нэвтэрсэн хүн
+админ самбарт автоматаар нэвтрээгүй байна — админ самбар дээр тусад нь нэвтэрч, MFA (TOTP)
+баталгаажуулна. Гарах үед зөвхөн тухайн host-ийн session устана (`scope: 'local'`).
+
+### 1. Шинэ админ нэмэх (алхам бүрэлдэхүүнтэй)
+
+Admin самбарт орохын тулд хэрэглэгчийн `profiles.is_admin = true` байх ёстой **бөгөөд** админ
+самбар дээр MFA (TOTP) тохируулсан байх ёстой — `public.is_admin()` функц aal2 session
+шаарддаг (нууц үг ганцаараа хангалтгүй).
+
+```bash
+# 1) НИЙТИЙН САЙТ дээр (localhost:3000) шинэ хэрэглэгчээр бүртгүүлнэ
+# 2) Админ эрх олгох:
+npm run admin:make -- you@mail.com
+
+# одоогийн админуудыг харах (имэйл илэрхийлэгдсэн байдалтай):
+npm run admin:list
+
+# тестийн хаяг үлдээсэн бол цэвэрлэх:
+npm run admin:cleanup
+
+# 3) Админ host дээр нэвтрэх:  http://admin.localhost:3000/login  (бодитойд admin.baina.mn)
+# 4) /security дээр гар утасны нэмэлт токен (TOTP) тохируулна
+```
+
+`admin:make` нь бүртгэлгүй имэйлээс татгалзаж, `is_admin=true`-г **parameterized** UPDATE-аар
+тавьж, дараагийн алхмуудыг хэвлэнэ. CLI-гүй хийх бол Supabase SQL Editor дээр:
+
+```sql
+update public.profiles set is_admin = true where email = 'YOUR_EMAIL';
+```
+
+`is_admin` / `status` / `role` талбарыг хэрэглэгч өөрөө өөрчлөх боломжгүй — урьдчилан сэргийлэх
+trigger (`public.protect_profile_identity`) болон `public.is_admin()` функц `db/admin.sql`-д бий.
+
+### 2. SQL ажиллуулах
+
+```text
+db/schema.sql   -- хүснэгт, функц, триггер
+db/rls.sql      -- RLS бодлогууд
+db/seed.sql     -- жишээ өгөгдөл (сонголтоор)
+db/storage.sql  -- bucket + storage policy
+db/admin.sql    -- админы хүснэгт/функц/RPC (idempotent)
+```
+
+Дараалал чухал: `admin.sql` нь `schema.sql`-ийн дараа.
+
+**Холболтын хаяг (чухал, IPv4):** локал скриптүүд (`db:apply`, `admin:*`, `verify-*`)
+эхлээд `DATABASE_POOLER_URL`-ийг ашиглана — Supabase Dashboard → **Connect → Session pooler →
+URI** хаягыг хуулаад `.env.local`-д бичнэ үү (порт ихэвчлэн `6543`; хаяг дээр
+`?sslmode=require` байхгүй бол нэмнэ). Энэ нь IPv4 зам тул шууд `DATABASE_URL`
+(зарим төсөл дээр IPv6-г үнэндээ ашигладаг) илүү тогтвортой. `DATABASE_POOLER_URL` тавиагүй
+бол скриптүүд хуучин `DATABASE_URL`-аараа ажиллана. Холболт амжилтгүй бол скрипт
+**Supabase SQL Editor-д ажиллуулахад бэлэн SQL**-ийг хэвлээд зогсоно (хоосон мэдээлээр
+амжилттай мэт харагдуулахгүй).
+
+Шалгалт:
+
+```bash
+npm run db:apply        # SQL-ийг дараалан ашиглана
+npm run admin:verify    # node scripts/verify-admin.mjs — админы эрхийн PASS/FAIL шалгалт
+                        # (тестийн хаягуудыг random нууц үгтэйгээр үүсгэж, finally-д устгана)
+```
+
+### 3. Supabase Redirect URLs
+
+Supabase Dashboard → **Authentication → URL Configuration** дээр дараах хаягуудыг нэмнэ
+(Redirect URLs жагсаалт):
+
+```text
+https://baina.mn/**
+https://admin.baina.mn/**
+http://localhost:3000/**
+http://admin.localhost:3000/**
+```
+
+Site URL: `https://baina.mn`. (Админ host зөвхөн нууц үг + MFA ашигладаг тул email-ийн
+callback шаардлагагүй; гэхдээ URL жагсаалтад байх нь асуудалгүй.)
+
+### 4. DNS + Vercel (нэг project, хоёр домэйн)
+
+1. Vercel → Project → **Settings → Domains** дээр хоёр домэйныг нэмнэ:
+   `baina.mn` (public) ба `admin.baina.mn` (admin). Хоёулаа нэг deployment-ийг заана.
+2. DNS (домэйны бүртгэгч дээр):
+   - `baina.mn` → `A 76.76.21.21` (Vercel-ийн default) эсвэл Vercel-ийн зааж өгсөн утга,
+   - `www` → `A 76.76.21.21` (эсвэл `CNAME cname.vercel-dns.com`),
+   - `admin` → `CNAME cname.vercel-dns.com` (subdomain тул CNAME).
+3. Орчны хувьсагч (Production): `NEXT_PUBLIC_SITE_URL=https://baina.mn`,
+   `NEXT_PUBLIC_ROOT_DOMAIN=baina.mn`, `NEXT_PUBLIC_ADMIN_HOST=admin.baina.mn`.
+4. `admin.baina.mn` дээр TLS сертификат автоматаар үүснэ; домэйн бүр "Valid Configuration"
+   болсны дараа л админ самбар нээгдэнэ.
+
+### 5. MFA төхөөрөмжөө алдвал
+
+- Supabase Dashboard → **Authentication → Users** → хэрэглэгч → **Factors** дээрээс тухайн
+  TOTP factor-ыг устгана. Дараа нь админ самбарт нэвтэрч `/security` дээр шинээр тохируулна.
+- Түр хугацаанд aal2 шаардлагыг сулруулах (зөвхөн шаардлагатай үед, дараа нь буцааж хаана):
+
+  ```sql
+  -- is_admin() функц aal2-гүйгээр true буцаадаг болгох (ТҮР, эрсдэлтэй):
+  create or replace function public.is_admin()
+  returns boolean language sql stable security definer set search_path = public as $$
+    select coalesce((select p.is_admin from public.profiles p where p.id = auth.uid()), false);
+  $$;
+  ```
+
+  Дараа нь `db/admin.sql`-ийг дахин ажиллуулж анхны (aal2 шаарддаг) хувилбарыг буцаана.
+
+### 6. Admin самбарын бүтэц (урьдчилсан)
+
+```text
+src/app/admin/
+  layout.tsx              # админ host-ийн root wrapper (noindex metadata)
+  login/page.tsx          # /login  (host дээр)
+  security/page.tsx       # /security — MFA (TOTP) тохируулах
+  (panel)/                # requireAdmin() хаалттай хэсэг (shell)
+    layout.tsx            # админ shell (icon rail + sidebar + top bar)
+    page.tsx              # / — Хянах самбар
+```
+
+Бүх админ линк **root-relative** (`/users`), хэзээ ч `/admin/...` биш — `adminHref()` helper
+(`src/lib/hosts.ts`) ашиглана. Нийтийн header дээр зөвхөн админд "Админ самбар" гэсэн линк
+харагдаж, absolute URL-аар (`getAdminUrl('/')`) админ host руу заана.
 
 ## Аюулгүй байдлын үндсэн зарчим
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Check, Lock, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
+import { Container } from '@/components/layout/Container';
 import { mn } from '@/lib/i18n/mn';
 
 /**
@@ -22,7 +23,7 @@ export function AuthShell({
   footer?: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-10 lg:grid-cols-2 lg:gap-16 lg:py-16">
+    <Container className="grid items-center gap-12 py-10 lg:grid-cols-2 lg:gap-16 lg:py-16">
       {/* Form side */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -115,6 +116,6 @@ export function AuthShell({
           </motion.div>
         </div>
       </motion.aside>
-    </div>
+    </Container>
   );
 }

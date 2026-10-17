@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
+import { Megaphone, FileText, Shuffle } from 'lucide-react';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -18,6 +19,33 @@ import {
 import { register as registerAction } from '@/lib/actions/auth';
 import { mn } from '@/lib/i18n/mn';
 import { cn } from '@/lib/utils';
+import type { UserIntent } from '@/lib/constants';
+
+const INTENT_OPTIONS: ReadonlyArray<{
+  key: UserIntent;
+  label: string;
+  desc: string;
+  icon: typeof Megaphone;
+}> = [
+  {
+    key: 'post',
+    label: mn.auth.register.intentPost,
+    desc: mn.auth.register.intentPostDesc,
+    icon: Megaphone,
+  },
+  {
+    key: 'bid',
+    label: mn.auth.register.intentBid,
+    desc: mn.auth.register.intentBidDesc,
+    icon: FileText,
+  },
+  {
+    key: 'both',
+    label: mn.auth.register.intentBoth,
+    desc: mn.auth.register.intentBothDesc,
+    icon: Shuffle,
+  },
+];
 
 const STRENGTH_COLORS = [
   'bg-danger-500',
@@ -32,6 +60,7 @@ export function RegisterForm({ next }: { next?: string }) {
   const toast = useToast();
   const [mounted, setMounted] = useState(false);
   const [role, setRole] = useState<'user' | 'company'>('user');
+  const [intent, setIntent] = useState<UserIntent>('both');
   const loginHref = `/auth/login${next ? `?next=${encodeURIComponent(next)}` : ''}`;
 
   useEffect(() => setMounted(true), []);
@@ -50,6 +79,7 @@ export function RegisterForm({ next }: { next?: string }) {
       companyName: '',
       email: '',
       phone: '',
+      intent: 'both',
       password: '',
       passwordConfirm: '',
     },
@@ -61,6 +91,11 @@ export function RegisterForm({ next }: { next?: string }) {
   const selectRole = (next: 'user' | 'company') => {
     setRole(next);
     setValue('role', next, { shouldValidate: true });
+  };
+
+  const selectIntent = (next: UserIntent) => {
+    setIntent(next);
+    setValue('intent', next, { shouldValidate: true });
   };
 
   const onSubmit = async (values: RegisterInput) => {
@@ -117,6 +152,49 @@ export function RegisterForm({ next }: { next?: string }) {
           {mounted && errors.role && (
             <p className="mt-1 text-xs text-danger-600">{errors.role.message}</p>
           )}
+        </fieldset>
+
+        {/* Intent picker: what the account mainly wants to do (orders the
+            dashboard UI only — never permissions) */}
+        <fieldset>
+          <legend className="mb-1 block text-sm font-medium text-text">
+            {mn.auth.register.intent}
+          </legend>
+          <p className="mb-2 text-xs leading-relaxed text-muted">
+            {mn.auth.register.intentHint}
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {INTENT_OPTIONS.map((option) => {
+              const selected = intent === option.key;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => selectIntent(option.key)}
+                  aria-pressed={selected}
+                  className={cn(
+                    'flex flex-col items-start gap-2 rounded-2xl border p-3.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    selected
+                      ? 'border-primary-500 bg-primary-50 shadow-card dark:bg-primary-950'
+                      : 'border-border bg-surface hover:bg-surface-2'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'flex h-9 w-9 items-center justify-center rounded-xl',
+                      selected
+                        ? 'bg-primary-500 text-navy'
+                        : 'bg-surface-2 text-muted'
+                    )}
+                  >
+                    <option.icon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <span className="text-sm font-semibold text-text">{option.label}</span>
+                  <span className="text-xs leading-snug text-muted">{option.desc}</span>
+                </button>
+              );
+            })}
+          </div>
         </fieldset>
 
         <Input

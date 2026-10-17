@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, LayoutGrid, Search, Sparkles } from 'lucide-react';
 import { CreateTenderModal } from '@/components/tenders/CreateTenderModal';
+import { Container } from '@/components/layout/Container';
 import { mn } from '@/lib/i18n/mn';
 import type { TenderOwner } from '@/lib/types/index';
 
@@ -16,12 +17,11 @@ import type { TenderOwner } from '@/lib/types/index';
 export function Hero({ user }: { user: TenderOwner | null }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [latin, setLatin] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const goToTenders = (extra?: Record<string, string>) => {
-    const params = new URLSearchParams(extra ?? {});
-    if (!extra && query.trim()) params.set('q', query.trim());
+  const goToTenders = () => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set('q', query.trim());
     const qs = params.toString();
     router.push(qs ? `/tenders?${qs}` : '/tenders');
   };
@@ -75,7 +75,7 @@ export function Hero({ user }: { user: TenderOwner | null }) {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-bg"
       />
 
-      <div className="relative mx-auto max-w-5xl px-4 pb-14 pt-8 text-center sm:pt-12">
+      <Container className="relative pb-14 pt-8 text-center sm:pt-12">
         {/* Eyebrow */}
         <p className="enter-1 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-text">
           <span className="h-1.5 w-1.5 rounded-full bg-primary-500" aria-hidden="true" />
@@ -109,9 +109,7 @@ export function Hero({ user }: { user: TenderOwner | null }) {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={
-                latin ? mn.hero.searchPlaceholderLatin : mn.hero.searchPlaceholder
-              }
+              placeholder={mn.hero.searchPlaceholder}
               className="h-12 min-w-0 flex-1 bg-transparent px-1 text-base text-text placeholder:text-muted focus-visible:outline-none"
             />
             <button
@@ -123,49 +121,6 @@ export function Hero({ user }: { user: TenderOwner | null }) {
             </button>
           </div>
         </form>
-
-        {/* Hint chips + Кирилл/Латин toggle */}
-        <div className="enter-5 mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-2 sm:justify-between">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {mn.hero.chips.map((chip) => (
-              <button
-                key={chip.label}
-                type="button"
-                onClick={() => goToTenders({ [chip.key]: chip.value })}
-                className="rounded-full border border-white/70 bg-white/60 px-3 py-1.5 text-xs font-medium text-muted backdrop-blur-md transition-colors hover:border-primary-300 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/10 dark:bg-white/5"
-              >
-                {chip.label}
-              </button>
-            ))}
-          </div>
-
-          <div
-            role="group"
-            aria-label={mn.hero.searchLabel}
-            className="flex items-center rounded-full border border-white/70 bg-white/60 p-0.5 backdrop-blur-md dark:border-white/10 dark:bg-white/5"
-          >
-            {(
-              [
-                { id: 'cyr', label: mn.hero.toggleCyrillic },
-                { id: 'lat', label: mn.hero.toggleLatin },
-              ] as const
-            ).map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={(option.id === 'lat') === latin}
-                onClick={() => setLatin(option.id === 'lat')}
-                className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  (option.id === 'lat') === latin
-                    ? 'bg-navy text-white'
-                    : 'text-muted hover:text-text'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* CTAs */}
         <div className="enter-5 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -198,7 +153,7 @@ export function Hero({ user }: { user: TenderOwner | null }) {
             {mn.hero.companyLink} →
           </Link>
         </p>
-      </div>
+      </Container>
 
       <CreateTenderModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </section>

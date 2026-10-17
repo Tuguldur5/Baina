@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { staggerContainer, fadeInUp, scrollReveal } from '@/lib/animations';
 import { categoryGradient, categoryIcon } from '@/lib/categories';
+import { Container } from '@/components/layout/Container';
 import { cn } from '@/lib/utils';
 import { mn } from '@/lib/i18n/mn';
 
@@ -28,7 +29,7 @@ export function CategoriesGrid() {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-bg to-transparent"
       />
 
-      <div className="relative mx-auto max-w-6xl px-4 py-16">
+      <Container className="relative py-16">
         <motion.div {...scrollReveal} className="text-center">
           <h2 className="text-2xl font-bold text-text sm:text-3xl">
             {mn.landing.categories.title}
@@ -67,7 +68,7 @@ export function CategoriesGrid() {
             );
           })}
         </motion.div>
-      </div>
+      </Container>
     </section>
   );
 }

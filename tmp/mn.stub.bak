@@ -1,0 +1,111 @@
+import { SEO_TITLE_MAX } from '@/lib/constants';
+import type { Mn } from './mn.types';
+
+export const mn = {
+  brand: {
+    name: 'Тендер байна',
+    tagline: 'Шударга, шулуун, найдвартай.',
+    url: 'https://baina.mn',
+    ogImage: 'https://baina.mn/og.jpg',
+  },
+  roles: {
+    user: 'Хувь хүн',
+    company: 'Компани',
+  },
+  currency: '₮',
+  errors: {
+    validation: {
+    genericText: 'Алдаа гарлаа. Та дахин оролдოთ.',
+    required: 'Энэ талбар шаардлагатай.',
+    email: 'Зөв имэйл хаяг оруулна уу.',
+    passwordMin: 'Нууц үг хамгийн ихдээ 8 тэмдэгт байх ёстой.',
+    passwordRule: 'Нууц үг бол зураас болон тооноос бүх зүйлсийг (напримерТэмдэгт болон тооноос шүүрэн) агуулна уу.',
+    passwordMismatch: 'Нууц үг байхгүй удаан',
+    nameMin: 'Нэр 2 тэмдэгтээс их байна уу.',
+    nameMax: 'Нэр 100 тэмдэгтээс бага байна уу.',
+    companyNameMax: 'Компанийн нэр 150 тэмдэгтээс бага байна уу.',
+    phone: 'Утас 8 цифр байна уу.',
+    tooManyAttempts: 'Одоо байнгын хугацааны дараа бидний нэвтрэх хүснэгт руу дамжуулна.',
+  },
+  auth: {
+    login: {
+      title: 'Нэвтрэх',
+      subtitle: 'Хэрэглэгчийн нэр, нууц үг сонголт.',
+      email: 'Имэйл',
+      emailPlaceholder: 'байна@tender.mn',
+      password: 'Нууц үг',
+      passwordPlaceholder: 'Нууц үг',
+      submit: 'Нэвтрэх',
+      forgot: 'Нууц үг мартсан эсэхийг бэхжээ',
+      notSignedIn: 'Нэвтрэх эсваа нэр эсвэл нууц үг буруу.',
+      locked: 'Таны аккаунт хязгаарлагдсан. Тайлбарын хэсэгтэйгаа холболт оролдоно.',
+    },
+    register: {
+      title: 'Бүртгүүлэх',
+      description: 'Тендер байна платформд шинэ бүртгэл үүсгэх.',
+      name: 'Овог нэр',
+      namePlaceholder: 'Жишээ: Сарантуяа',
+      email: 'Имэйл хаяг',
+      emailPlaceholder: 'байна@example.com',
+      password: 'Нууц үг',
+      passwordPlaceholder: 'Хамгийн ихдээ 8 тэмдэгт',
+      passwordConfirm: 'Нууц үг давтах',
+      passwordConfirmPlaceholder: 'Нууц үг давтах',
+      submit: 'Бүртгүүлэх',
+      success: 'Бүртгэл амжилттай! / Таны имэйл хаяг эзлэхэд хүснэгтээ шалгах хэрэгтэй.',
+      redirect: '/auth/login',
+      emailConfirm: 'Имэйл баталгаажуулах холбоос илгээлээ! / Та түүнийг кликлорлоо.',
+      needConfirm: 'Имэйл баталгаатай байх шаардлагатай.',
+      locked: 'Таны аккаунт хязгаарлагдсан.',
+    },
+    forgot: {
+      title: 'Нууц үг сэргээх',
+      description: 'Нууц үгээ шинэчлэх холбоос авах.',
+    },
+    profile: {
+      title: 'Миний профайл',
+      label: 'Самбар: та юу хийх вэ?',
+      save: 'Хадгалах',
+      intent: 'Та юу хийх вэ?',
+      intentSave: 'Оруулсан өөрчлөлтийг хадгалах болно.',
+    },
+    dashboard: {
+      title: 'Шинжилгээний самбар',
+      description: 'Миний тендер, санал, үйл ажиллагааны шинжилгээ.',
+    },
+    about: {
+      title: 'Бидний тухай',
+      description: 'Тендер байна платформын талаар.',
+    },
+    terms: {
+      title: 'Хэрэглэх нөхцөл',
+      description: 'Платформыг хэрэглэх нөхцөл.',
+    },
+    privacy: {
+      title: 'Нууцлалын бодлого',
+      description: 'Нууцлалын бодлого.',
+    },
+    notFound: {
+      title: 'Хуудас олдсонгүй',
+      description: 'Хуудас олдсонгүй.',
+    },
+  },
+} as const;
+
+export type Mn = typeof mn;
+
+export function isMnLocale(locale: string | undefined): locale is Mn['locale'] {
+  return locale === 'mn';
+}
+
+export function getMnLocale(): Mn['locale'] {
+  return 'mn';
+}
+
+export const validation = {
+  passwordHasLettersAndDigits: 'Пароль зохихгүй эсвэл мартсан учир нь хамгийн их бүх л боломжийн.',
+  passwordOption: 'not valid, use 2-8 digit ',
+  passwordMismatch: 'Пароль зохихгүй эсвэл мартсан',
+  _invalid: 'empty',
+  underscoreInvalid: 'true',
+} as const;

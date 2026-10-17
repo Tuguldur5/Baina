@@ -59,67 +59,189 @@ update public.profiles set phone = '99334455'
  where id = '33333333-3333-3333-3333-333333333333';
 
 -- ---------------------------------------------------------------------------
--- tenders (8 across categories and regions; public description <= 600 chars)
+-- tenders (8 across categories and regions; realistic Oyu Tolgoi-style public
+-- notices: intro + scope bullets + requirements + papers + evaluation criteria
+-- + timeline. 2 of them are EOI (sonirholt ilerhiielkh urdchilsan shat).)
 -- ---------------------------------------------------------------------------
 insert into public.tenders (
   id, title, description, category, budget, currency, region, status, deadline,
-  created_by_user_id, created_at
+  created_by_user_id, created_at,
+  tender_type, summary, scope_items, requirements, required_documents,
+  evaluation_criteria, local_preference, submission_language, contract_duration,
+  qa_deadline, expected_award_date, has_attachments
 ) values
+  -- 1) Барилга — дотор засал (tender, 3 шалгуур)
   ('aaaaaaa1-0000-0000-0000-000000000001',
-   'Гэрийн засвар үйлчилгээ',
-   'Баянзүрх дүүргийн 3-р хороонд байрлах 3 өрөө орон сууцны засвар үйлчилгээ: өрөөнүүдийг будаж, шал цутгаж, цонхны модыг солих шаардлагатай.',
+   'Баянзүрх дүүргийн орон сууцны дотор засал',
+   'Баянзүрх дүүргийн 3-р хороонд байрлах 3 өрөө орон сууцны дотор засварын ажлыг гүйцэтгэх нийлүүлэгчийг сонгоно.',
    'Барилга', 2500000, 'MNT', 'Улаанбаатар', 'open', now() + interval '14 days',
-   '11111111-1111-1111-1111-111111111111', now() - interval '2 days'),
+   '11111111-1111-1111-1111-111111111111', now() - interval '2 days',
+   'tender',
+   'Энэхүү урилгаар байрны дотор заслын ажлыг гүйцэтгэх байгууллагыг сонгоно. Урилга нь урьдчилсан шат бөгөөд эцсийн худалдан авалтын амлалт биш юм.',
+   jsonb_build_array('3 өрөөн доторх ханын будаг, шинэчлэл', 'Шалны хавтан цутгаж, тавих', 'Цонхны мод солих, цэвэрлэгээ'),
+   jsonb_build_array(
+     jsonb_build_object('text', 'Барилга засвар үйлчилгээний тусгай зөвшөөрөлтэй байх', 'mandatory', true),
+     jsonb_build_object('text', 'Сүүлийн 3 жилд ижил төстэй ажил гүйцэтгэсэн туршлагатай байх', 'mandatory', true),
+     jsonb_build_object('text', 'Ажлын баг 3 хүн + 1 мастертай байх', 'mandatory', false)
+   ),
+   jsonb_build_array('Тусгай зөвшөөрлийн хуулбар', 'Туршлагын тодорхойлолт', 'Үнийн саналын хуудас'),
+   jsonb_build_array(
+     jsonb_build_object('name', 'Үнийн санал (нийт зардал)', 'weight', 45),
+     jsonb_build_object('name', 'Гүйцэтгэх хугацаа', 'weight', 30),
+     jsonb_build_object('name', 'Туршлага, баталгаа', 'weight', 25)
+   ),
+   null, 'mn', '21 хоног', now() + interval '7 days', (now() + interval '20 days')::date, false),
+
+  -- 2) Технологи — вэбсайт (tender, шалгуургүй — үнээр сонгоно)
   ('aaaaaaa1-0000-0000-0000-000000000002',
-   'Вэбсайт хийлгэх',
-   'Зоогийн газрын онлайн захиалгатай вэбсайт хэрэгтэй: меню үзүүлэх, захиалга авах админ панелтай байх.',
+   'Зоогийн газрын онлайн захиалгатай вэбсайт',
+   'Зоогийн газрын онлайн захиалга авдаг, меню үзүүлдэг вэбсайт бүтээлгэх шаардлагатай.',
    'Технологи', 4800000, 'MNT', 'Улаанбаатар', 'open', now() + interval '21 days',
-   '11111111-1111-1111-1111-111111111111', now() - interval '1 day'),
+   '11111111-1111-1111-1111-111111111111', now() - interval '1 day',
+   'tender',
+   'Манай зоогийн газар үйлчлүүлэгчээс шууд захиалга авдаг, менюгээ өөрөө шинэчилдэг вэбсайт хэрэгтэй байна.',
+   jsonb_build_array('Меню, үнийн жагсаалт (өөрөө шинэчлэгддэг)', 'Онлайн захиалга, төлбөрийн линк', 'Админ панель (захиалга, бүтээгдэхүүн)'),
+   jsonb_build_array(
+     jsonb_build_object('text', 'Монгол хэл дээр, утасны дэлгэцэд ээлтэй байх', 'mandatory', true),
+     jsonb_build_object('text', 'Хурдан ачаалалтай байх (LCP < 2.5s)', 'mandatory', false)
+   ),
+   jsonb_build_array('Ажлын төлөвлөгөө', 'Портфолио (ажлын жишээ)', 'Үнийн саналын хуудас'),
+   '[]'::jsonb,
+   null, 'mn', '60 хоног', null, null, true),
+
+  -- 3) Барилга — материал нийлүүлэлт (local preference + хатуу хэл)
   ('aaaaaaa1-0000-0000-0000-000000000003',
-   'Барилгын материал нийлүүлэлт',
+   'Барилгын материалын улирын нийлүүлэлт',
    '20,000 шоо метр элс, 5,000 шоо метр чулуу, 300 тонн цементийг Улаанбаатар хот руу нийлүүлэх шаардлагатай.',
    'Барилга', 35000000, 'MNT', 'Улаанбаатар', 'open', now() + interval '10 days',
-   '22222222-2222-2222-2222-222222222222', now() - interval '3 days'),
+   '22222222-2222-2222-2222-222222222222', now() - interval '3 days',
+   'tender',
+   'Бетон зуурмагийн үйлдвэрийн улирын бүтээгдэхүүний нийлүүлэлтийг сар бүр ээлжээр хийнэ.',
+   jsonb_build_array('Сар бүр 5,000 ш.м элс, 1,250 ш.м чулуу, 75 тонн цемент', 'Бүтээгдэхүүнийг шинжилгээний баталгаатай ирүүлэх', 'Хүргэлтийн баримт бүрдүүлэх'),
+   jsonb_build_array(
+     jsonb_build_object('text', 'Нийлүүлэлтийн туршлагатай байх', 'mandatory', true),
+     jsonb_build_object('text', 'Өөрийн тээврийн хэрэгсэлтэй байх', 'mandatory', true),
+     jsonb_build_object('text', 'Бүтээгдэхүүний шинжилгээний гэрчилгээ гаргах', 'mandatory', false)
+   ),
+   jsonb_build_array('Компанийн бүртгэлийн гэрчилгээ', 'Сүүлийн жилийн нийлүүлэлтийн тайлан', 'Үнийн саналын хуудас'),
+   jsonb_build_array(
+     jsonb_build_object('name', 'Нийт үнэ', 'weight', 50),
+     jsonb_build_object('name', 'Хүргэлтийн хугацаа', 'weight', 30),
+     jsonb_build_object('name', 'Чанарын баталгаа', 'weight', 20)
+   ),
+   'Улаанбаатар хотод бүртгэлтэй нийлүүлэгч', 'mn', '12 сар', now() + interval '5 days', (now() + interval '16 days')::date, false),
+
+  -- 4) Худалдаа — тавилга (tender, шалгууртай)
   ('aaaaaaa1-0000-0000-0000-000000000004',
    'Оффисын тавилга худалдан авалт',
    '20 ажлын байранд зориулсан ширээ, сандал, шүүгээ худалдан авна. Чанарын баталгаа, угсралтын үйлчилгээтэй байхыг шаардана.',
    'Худалдаа', 12000000, 'MNT', 'Улаанбаатар', 'open', now() + interval '7 days',
-   '22222222-2222-2222-2222-222222222222', now() - interval '4 days'),
+   '22222222-2222-2222-2222-222222222222', now() - interval '4 days',
+   'tender',
+   'Шинэ оффисын тавилгыг нэг удаа худалдан авч, угсралтыг нийлүүлэгчийн баг хийнэ.',
+   jsonb_build_array('20 ширхэг ширээ, 20 ширхэг сандал', '12 ширхэг шүүгээ', 'Угсралт, хүргэлт үнэд багтах'),
+   jsonb_build_array(
+     jsonb_build_object('text', 'Тавилгад дор хаяж 5 жилийн баталгаа өгөх', 'mandatory', true),
+     jsonb_build_object('text', 'Угсралтын ажилтаны багтай байх', 'mandatory', false)
+   ),
+   jsonb_build_array('Чанарын баталгааны бичиг', 'Үнийн саналын хуудас'),
+   jsonb_build_array(
+     jsonb_build_object('name', 'Нийт үнэ', 'weight', 40),
+     jsonb_build_object('name', 'Материал, чанар', 'weight', 35),
+     jsonb_build_object('name', 'Хүргэлт, угсралт', 'weight', 25)
+   ),
+   null, 'mn', '14 хоног', null, null, false),
+
+  -- 5) Тээвэр — ачаа тээвэрлэлт (geree/contract duration)
   ('aaaaaaa1-0000-0000-0000-000000000005',
-   'Ачааны машин тээвэрлэлт',
+   'Улаанбаатар–Дархан чиглэлийн ачаа тээвэрлэлт',
    'Улаанбаатараас Дархан хот хүртэл ачаа тээвэрлэлт хийх шаардлагатай. 20 тонн ачаа, тусгай хамгаалалттай.',
    'Тээвэр', 8000000, 'MNT', 'Дархан-Уул', 'open', now() + interval '5 days',
-   '33333333-3333-3333-3333-333333333333', now() - interval '2 days'),
+   '33333333-3333-3333-3333-333333333333', now() - interval '2 days',
+   'tender',
+   'Улирын тээвэрлэлтийн гэрээ байгуулж, сард 4 удаа ачааг тогтмол хүргэнэ.',
+   jsonb_build_array('Сард 4 удаа 20 тонн ачаа тээвэрлэх', 'Ачааг хүлээн авагчийн газар хүргэх', 'Хүргэлтийн баримт бүрдүүлэх'),
+   jsonb_build_array(
+     jsonb_build_object('text', 'Жолооч 5+ жилийн туршлагатай байх', 'mandatory', true),
+     jsonb_build_object('text', 'Ачааны машин нойл хамгаалалттай, даатгалтай байх', 'mandatory', true)
+   ),
+   jsonb_build_array('Тээврийн лиценз', 'Даатгалын бичиг', 'Үнийн саналын хуудас'),
+   '[]'::jsonb,
+   null, 'mn', '12 сар', null, (now() + interval '12 days')::date, false),
+
+  -- 6) Үйлчилгээ — маркетинг (EOI — урьдчилсан шат)
   ('aaaaaaa1-0000-0000-0000-000000000006',
-   'Маркетингийн үйлчилгээ',
-   'Шинэ гар утасны аппликейшнийг сурталчлах сошиал медиа маркетингийн кампанит ажил: контент бэлтгэх, зар сурталчилгаа удирдах.',
+   'Аппликейшн сурталчилгааны кампанит ажил (сонирхол)',
+   'Шинэ гар утасны аппликейшнийг сурталчлах сошиал медиа маркетингийн кампанит ажилд оролцох сонирхолтой байгууллагуудыг урьж байна.',
    'Үйлчилгээ', 6500000, 'MNT', 'Орхон', 'open', now() + interval '30 days',
-   '11111111-1111-1111-1111-111111111111', now() - interval '6 hours'),
+   '11111111-1111-1111-1111-111111111111', now() - interval '6 hours',
+   'eoi',
+   'Энэ нь сонирхол илэрхийлэх урьдчилсан шат бөгөөд худалдан авалтын амлалт биш. Урьдчилсан шатанд туршлага, баг, багцын үнэ төлбөрийн ерөнхий утгыг харгалзан үзнэ; эцсийн шатанд зөвхөн шалгарсан оролцогчдийг урьна.',
+   jsonb_build_array('Сард 120 пост, 30 reels бэлтгэх', 'Зар сурталчилгааны бүрэн удирдлага', 'Сар тутмын тайлан (reach, engagement)'),
+   jsonb_build_array(
+     jsonb_build_object('text', 'Сошиал медиа маркетингийн 2+ жилийн туршлагатай байх', 'mandatory', true),
+     jsonb_build_object('text', 'Англи хэл дээр контент бэлтгэх чадвартай байх', 'mandatory', false)
+   ),
+   jsonb_build_array('Компанийн танилцуулга', 'Портфолио (гүйцэтгэсэн кампанит ажил)', 'Багийн бүрэлдэхүүний жагсаалт'),
+   '[]'::jsonb,
+   null, 'both', '3 сар', now() + interval '12 days', (now() + interval '40 days')::date, false),
+
+  -- 7) Боловсрол — сургалтын хэрэгсэл (EOI, хаагдсан)
   ('aaaaaaa1-0000-0000-0000-000000000007',
-   'Сурагчдын сургалтын хэрэгсэл',
+   'Сурагчдын сургалтын хэрэгслийн нийлүүлэлт (сонирхол)',
    'Бага ангийн 300 сурагчдад зориулсан сургалтын хэрэгсэл (ном, дэвтэр, бичгийн хэрэгсэл) худалдан авна.',
    'Боловсрол', 3200000, 'MNT', 'Хөвсгөл', 'closed', now() - interval '3 days',
-   '22222222-2222-2222-2222-222222222222', now() - interval '20 days'),
+   '22222222-2222-2222-2222-222222222222', now() - interval '20 days',
+   'eoi',
+   'Сонирхол илэрхийлэх урьдчилсан шат амжилттай дууссан. Шалгарсан оролцогчийг тусад нь урьж, эцсийн үнийн саналыг хүлээн авна.',
+   jsonb_build_array('300 багц сургалтын хэрэгсэл бүрдүүлэх', '7 хоногийн дотор хүргэх', 'Багц бүрт жагсаалт гаргах'),
+   jsonb_build_array(
+     jsonb_build_object('text', 'Нийлүүлэлтийн туршлагатай байх', 'mandatory', true)
+   ),
+   jsonb_build_array('Бүтээгдэхүүний жагсаалт', 'Үнийн саналын хуудас'),
+   '[]'::jsonb,
+   null, 'mn', '7 хоног', null, null, false),
+
+  -- 8) Эрүүл мэнд — тоног төхөөрөмж (шалгарсан, шалгууртай)
   ('aaaaaaa1-0000-0000-0000-000000000008',
-   'Эмнэлгийн тоног төхөөрөмж',
+   'Эмнэлгийн оношилгооны тоног төхөөрөмж',
    'Хувийн эмнэлэгт зориулсан оношилгооны тоног төхөөрөмж нийлүүлэх: шинжилгээний аппарат, кабинетын тоног хэрэгсэл.',
    'Эрүүл мэнд', 25000000, 'MNT', 'Өмнөговь', 'awarded', now() - interval '1 day',
-   '33333333-3333-3333-3333-333333333333', now() - interval '15 days')
-on conflict (id) do nothing;
-
--- Backfill region for rows created by an older version of this seed
-update public.tenders t set region = v.region
-from (values
-  ('aaaaaaa1-0000-0000-0000-000000000001', 'Улаанбаатар'),
-  ('aaaaaaa1-0000-0000-0000-000000000002', 'Улаанбаатар'),
-  ('aaaaaaa1-0000-0000-0000-000000000003', 'Улаанбаатар'),
-  ('aaaaaaa1-0000-0000-0000-000000000004', 'Улаанбаатар'),
-  ('aaaaaaa1-0000-0000-0000-000000000005', 'Дархан-Уул'),
-  ('aaaaaaa1-0000-0000-0000-000000000006', 'Орхон'),
-  ('aaaaaaa1-0000-0000-0000-000000000007', 'Хөвсгөл'),
-  ('aaaaaaa1-0000-0000-0000-000000000008', 'Өмнөговь')
-) as v(id, region)
-where t.id::text = v.id and t.region is distinct from v.region;
+   '33333333-3333-3333-3333-333333333333', now() - interval '15 days',
+   'tender',
+   'Оношилгооны тоног төхөөрөмжийг угсралт, сургалттайгаар нэг удаа нийлүүлнэ.',
+   jsonb_build_array('Цус шинжилгээний анализатор', 'Зөөврийн кардиограф', 'Угсралт, ашиглалтын сургалт'),
+   jsonb_build_array(
+     jsonb_build_object('text', 'CE баталгаатай байх', 'mandatory', true),
+     jsonb_build_object('text', 'Монгол хэлний заавар, интерфэйстэй байх', 'mandatory', true),
+     jsonb_build_object('text', '2 жилийн баталгаа өгөх', 'mandatory', false)
+   ),
+   jsonb_build_array('Баталгааны бичиг', 'Техникийн үзүүлэлт', 'Үнийн саналын хуудас'),
+   jsonb_build_array(
+     jsonb_build_object('name', 'Техникийн үзүүлэлт', 'weight', 40),
+     jsonb_build_object('name', 'Нийт үнэ', 'weight', 35),
+     jsonb_build_object('name', 'Сургалт, дэмжлэг', 'weight', 25)
+   ),
+   null, 'both', '24 сар', now() - interval '10 days', (now() - interval '4 days')::date, false)
+on conflict (id) do update
+  set title = excluded.title,
+      description = excluded.description,
+      category = excluded.category,
+      budget = excluded.budget,
+      region = excluded.region,
+      status = excluded.status,
+      deadline = excluded.deadline,
+      tender_type = excluded.tender_type,
+      summary = excluded.summary,
+      scope_items = excluded.scope_items,
+      requirements = excluded.requirements,
+      required_documents = excluded.required_documents,
+      evaluation_criteria = excluded.evaluation_criteria,
+      local_preference = excluded.local_preference,
+      submission_language = excluded.submission_language,
+      contract_duration = excluded.contract_duration,
+      qa_deadline = excluded.qa_deadline,
+      expected_award_date = excluded.expected_award_date;
 
 -- ---------------------------------------------------------------------------
 -- tender_private_details (stage-2 confidential information)

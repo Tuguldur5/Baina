@@ -45,12 +45,27 @@ export function parseDbUrl(url) {
   return { user, host: hostOnly, port };
 }
 
-/** Connect using DATABASE_URL from .env.local; returns an open pg Client. */
+/**
+ * Connect to Postgres; returns an open pg Client.
+ *
+ * Connection string priority:
+ *   1. DATABASE_POOLER_URL — Supabase Session pooler (IPv4). Preferred: the
+ *      direct `db.<ref>` hostname is IPv6-only on some projects and that route
+ *      is flaky from IPv4-only networks (OS-level ETIMEDOUT).
+ *   2. DATABASE_URL — direct connection, kept as a fallback.
+ *
+ * Every attempt is bounded (12 s) and retried with short backoff so a flaky
+ * route fails fast instead of stalling the script for minutes.
+ */
 export async function connect() {
   const env = readEnv();
-  const url = env.DATABASE_URL;
+  const usingPooler = Boolean(env.DATABASE_POOLER_URL);
+  const url = env.DATABASE_POOLER_URL || env.DATABASE_URL;
   if (!url) {
-    throw new Error('DATABASE_URL not found in .env.local');
+    throw new Error(
+      'DATABASE_POOLER_URL / DATABASE_URL not found in .env.local ' +
+        '(Supabase Dashboard -> Connect -> Session pooler gives DATABASE_POOLER_URL)'
+    );
   }
   const withoutScheme = url.replace(/^postgres(ql)?:\/\//, '');
   const atIndex = withoutScheme.lastIndexOf('@');
@@ -69,45 +84,59 @@ export async function connect() {
 
   let lastError;
   // Prefer IPv4 when an A record exists: some networks drop the IPv6 route
-  // to Supabase (ETIMEDOUT). Supabase pooler hostnames may be IPv6-only, so
-  // fall back to the hostname and retry — the route is flaky, not dead.
+  // to Supabase (ETIMEDOUT). The pooler hostname usually resolves to IPv4
+  // already; if lookup fails we fall back to the hostname itself.
   let connectHost = host;
   try {
     connectHost = (await lookup(host, { family: 4 })).address;
   } catch {
     /* no A record — fall back to the hostname */
   }
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
-  for (const password of candidates) {
-    const client = new pg.Client({
-      host: connectHost,
-      port,
-      user,
-      password,
-      database: 'postgres',
-      ssl: { rejectUnauthorized: false },
-    });
-    try {
-      await client.connect();
-      // A dropped TLS socket must not crash the script with an unhandled
-      // 'error' event; callers see the query fail and can reconnect.
-      client.on('error', (err) => {
-        console.error(`NOTE: pg connection error -> ${err.message}`);
+
+  const MAX_ATTEMPTS = 6;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    for (const password of candidates) {
+      const client = new pg.Client({
+        host: connectHost,
+        port,
+        user,
+        password,
+        database: 'postgres',
+        ssl: { rejectUnauthorized: false },
+        // Bound every attempt: an IPv6-only direct route to Supabase times out
+        // at the OS level (~2 min) when it is flaky, which used to stall the
+        // whole script. Fail fast and let the retry loop decide.
+        connectionTimeoutMillis: 12_000,
       });
-      return client;
-    } catch (error) {
-      lastError = error;
       try {
-        await client.end();
-      } catch {
-        /* ignore */
+        await client.connect();
+        if (attempt > 1 || candidates.length > 1) {
+          console.log(
+            `Connected via ${usingPooler ? 'DATABASE_POOLER_URL (session pooler)' : 'DATABASE_URL (direct)'} (attempt ${attempt})`
+          );
+        }
+        // A dropped TLS socket must not crash the script with an unhandled
+        // 'error' event; callers see the query fail and can reconnect.
+        client.on('error', (err) => {
+          console.error(`NOTE: pg connection error -> ${err.message}`);
+        });
+        return client;
+      } catch (error) {
+        lastError = error;
+        try {
+          await client.end();
+        } catch {
+          /* ignore */
+        }
       }
     }
-  }
-    if (attempt < 4) {
-      // ETIMEDOUT / ECONNRESET on a flaky IPv6 route: back off and retry.
+    if (attempt < MAX_ATTEMPTS) {
+      // ETIMEDOUT / ECONNRESET on a flaky route: short linear backoff, retry.
       await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
     }
   }
-  throw lastError;
+  const hint = usingPooler
+    ? ''
+    : '\nHint: set DATABASE_POOLER_URL (Supabase Dashboard -> Connect -> Session pooler) for a stable IPv4 route.';
+  throw new Error(`Could not connect to Postgres after ${MAX_ATTEMPTS} attempts: ${lastError?.message}${hint}`);
 }

@@ -1,0 +1,18 @@
+--- round 1 ---
+attempt 1: timeout expired
+attempt 2: timeout expired
+CLEANUP FAILED — run manually in the Supabase SQL editor
+database still unreachable — retrying in 3 min
+--- round 2 ---
+attempt 1: before=2 after=0 profiles=0
+CLEANUP OK
+Connected to Postgres.
+Applying db/schema.sql ...
+  OK: db/schema.sql
+Applying db/rls.sql ...
+  OK: db/rls.sql
+Applying db/seed.sql ...
+NOTE: pg connection error -> read ECONNRESET
+
+FAILED: read ECONNRESET
+DB APPLY FAILED

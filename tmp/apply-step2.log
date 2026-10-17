@@ -1,0 +1,18 @@
+
+> tender-mn@0.1.0 db:apply
+> node scripts/apply-sql.mjs
+
+Connected via DATABASE_URL (direct) (attempt 1)
+Connected to Postgres.
+Applying db/schema.sql ...
+  OK: db/schema.sql
+Applying db/rls.sql ...
+  OK: db/rls.sql
+Applying db/seed.sql ...
+  OK: db/seed.sql
+Applying db/storage.sql ...
+  OK: db/storage.sql
+Applying db/admin.sql ...
+  OK: db/admin.sql
+
+All SQL applied successfully.

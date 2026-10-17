@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react';
 import { TenderCard } from '@/components/tenders/TenderCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { staggerContainer, scrollReveal } from '@/lib/animations';
+import { Container } from '@/components/layout/Container';
 import { mn } from '@/lib/i18n/mn';
 import type { TenderWithOwner } from '@/lib/types/index';
 
@@ -13,7 +14,8 @@ import type { TenderWithOwner } from '@/lib/types/index';
 export function FeaturedTenders({ tenders }: { tenders: TenderWithOwner[] }) {
   return (
     <section className="border-y border-border bg-surface-2/50 py-16">
-      <motion.div {...scrollReveal} className="mx-auto max-w-6xl px-4">
+      <motion.div {...scrollReveal}>
+        <Container>
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h2 className="text-2xl font-bold text-text sm:text-3xl">
@@ -47,6 +49,7 @@ export function FeaturedTenders({ tenders }: { tenders: TenderWithOwner[] }) {
             </motion.div>
           )}
         </div>
+        </Container>
       </motion.div>
     </section>
   );

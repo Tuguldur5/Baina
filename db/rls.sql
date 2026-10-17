@@ -273,3 +273,13 @@ create policy "Users can delete own notifications"
 
 -- No INSERT policy on purpose: notifications are created by the
 -- security-definer triggers in schema.sql (table owner bypasses RLS).
+
+-- ---------------------------------------------------------------------------
+-- saved_tenders — bookmarks: a user creates, reads and deletes ONLY their own
+-- rows. No public read (who bookmarked what is private).
+-- ---------------------------------------------------------------------------
+drop policy if exists "Users manage own saved tenders" on public.saved_tenders;
+create policy "Users manage own saved tenders"
+  on public.saved_tenders for all to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
